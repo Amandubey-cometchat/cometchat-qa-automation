@@ -148,13 +148,24 @@ function flattenSpecs(suite, fileTitle, out) {
     else if (expectedFailure && result.status === 'failed') category = 'expected-fail';
     else category = 'passed';
 
+    const errorMessage = result.error ? stripAnsi(result.error.message) : null;
+    // Not a certain diagnosis — there's no way to query the actual Dashboard
+    // trigger-checkbox state without Management API credentials (still
+    // blocked). This only distinguishes two failure *shapes* that otherwise
+    // look identical: no webhook arrived at all (could be a disabled
+    // trigger, could be a real regression) vs. one arrived but its content
+    // was wrong (definitely a real bug). expectWebhookEvent's timeout error
+    // always starts with this exact text — see src/webhook/webhook.waiter.ts.
+    const likelyNotReceived = category === 'failed' && /^Error: Timed out waiting for webhook event/.test(errorMessage || '');
+
     out.push({
       file: fileTitle,
       title: spec.title,
       category,
+      likelyNotReceived,
       status: result.status,
       duration: result.duration,
-      error: result.error ? stripAnsi(result.error.message) : null,
+      error: errorMessage,
       skipReason: skipAnnotation ? skipAnnotation.description || null : null,
       knownIssueReason: failAnnotation ? failAnnotation.description || null : null,
     });

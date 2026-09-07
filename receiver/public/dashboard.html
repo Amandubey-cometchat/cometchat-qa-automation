@@ -282,6 +282,7 @@
   .test-badge.skipped { background: rgba(139,145,167,0.2); color: var(--muted); }
   .test-badge.expected-fail { background: rgba(226,163,61,0.18); color: var(--warn); }
   .test-badge.blocked { background: rgba(122,92,255,0.18); color: #a794ff; }
+  .test-badge.not-received { background: rgba(108,140,255,0.15); color: var(--accent); cursor: help; }
   .test-file { color: var(--muted); font-size: 11px; font-family: var(--mono); white-space: nowrap; }
   .test-title { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .reason-box {
@@ -781,12 +782,20 @@
         const reason = t.error || t.skipReason || t.knownIssueReason;
         const reasonClass = t.error ? 'error' : 'skip';
         const canExpand = Boolean(reason);
+        // Not a certain diagnosis (no Management API access to check the
+        // actual Dashboard trigger state) — just distinguishes "nothing
+        // arrived at all" from "something arrived but was wrong", since
+        // those currently look identical under one FAILED badge.
+        const notReceivedBadge = t.likelyNotReceived
+          ? '<span class="test-badge not-received" title="No webhook arrived at all before the timeout — could be a disabled trigger in the Dashboard, or a real regression. Not certain either way without Management API access.">not received?</span>'
+          : '';
         return `
         <div class="event ${open ? 'open' : ''}" data-id="${id}">
           <div class="event-head" ${canExpand ? `onclick="window.__toggleResult('${id}')"` : 'style="cursor:default;"'}>
             ${canExpand ? '<span class="chevron">▶</span>' : '<span class="chevron" style="visibility:hidden;">▶</span>'}
             <div class="test-row" style="flex:1; min-width:0;">
               <span class="test-badge ${t.category}">${categoryLabel(t.category)}</span>
+              ${notReceivedBadge}
               <span class="test-file">${escapeHtml(t.file)}</span>
               <span class="test-title">${escapeHtml(t.title)}</span>
             </div>
