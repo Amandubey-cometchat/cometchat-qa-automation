@@ -41,21 +41,22 @@ export async function launchSdkClient(uid: string, authToken: string): Promise<S
   await page.goto('https://example.com');
   await page.addScriptTag({ url: COMETCHAT_SDK_CDN });
 
-  const { appId, region } = getConfig();
+  const { appId, region, adminHost, clientHost } = getConfig();
   await page.evaluate(
-    async ({ appId, region, authToken }) => {
+    async ({ appId, region, authToken, adminHost, clientHost }) => {
       // @ts-ignore - CometChat is a CDN global, not a module import
-      const appSetting = new CometChat.AppSettingsBuilder()
-        .subscribePresenceForAllUsers()
-        .setRegion(region)
-        .autoEstablishSocketConnection(true)
-        .build();
+      const builder = new CometChat.AppSettingsBuilder().subscribePresenceForAllUsers().setRegion(region).autoEstablishSocketConnection(true);
+      // Dedicated-deployment override (e.g. CometChat's staging
+      // infrastructure, on cometchat-staging.com rather than cometchat.io)
+      if (adminHost) builder.overrideAdminHost(adminHost);
+      if (clientHost) builder.overrideClientHost(clientHost);
+      const appSetting = builder.build();
       // @ts-ignore
       await CometChat.init(appId, appSetting);
       // @ts-ignore
       await CometChat.login(authToken);
     },
-    { appId, region, authToken }
+    { appId, region, authToken, adminHost, clientHost }
   );
   // login() resolving doesn't guarantee the WebSocket has finished opening —
   // calling an action too soon throws NO_WEBSOCKET_CONNECTION. Verified live.

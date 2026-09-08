@@ -25,6 +25,18 @@ export interface EnvironmentConfig {
   mgmtSecret?: string;
   /** Client-side (Auth Only scope) credential — only needed for UI-driven testing through the real Sample App (src/clients/sample-app.client.ts). Never sent to the REST API. */
   authKey?: string;
+  /**
+   * Dedicated-deployment host overrides (e.g. CometChat's staging
+   * infrastructure, which lives on cometchat-staging.com rather than the
+   * standard cometchat.io — confirmed live 2026-09-08 for staging-us).
+   * Literal values as CometChat's own dashboard/UIKit snippets give them:
+   * "<appId>.api-<region>.<domain>/v3" and "<appId>.apiclient-<region>.<domain>/v3"
+   * — no protocol prefix. Passed straight through to the REST client's base
+   * URL and to the JS SDK's AppSettingsBuilder.overrideAdminHost/
+   * overrideClientHost. Unset for every standard (non-dedicated) app.
+   */
+  adminHost?: string;
+  clientHost?: string;
 }
 
 const REQUIRED_KEYS: (keyof EnvironmentConfig)[] = [

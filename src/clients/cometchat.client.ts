@@ -7,7 +7,8 @@
 import { getConfig } from '../config/env';
 
 function baseUrl(): string {
-  const { appId, region } = getConfig();
+  const { appId, region, adminHost } = getConfig();
+  if (adminHost) return `https://${adminHost}`;
   return `https://${appId}.api-${region}.cometchat.io/v3`;
 }
 
