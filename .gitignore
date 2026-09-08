@@ -15,6 +15,11 @@ reports/test-artifacts/
 # Receiver's persisted event log — runtime data, not source
 receiver/data/
 
+# CometChat's own official Sample App — an external repo cloned locally for
+# UI-driven testing (src/clients/sample-app.client.ts), not this project's
+# source. See README -> "UI-driven testing" for the clone/setup command.
+sample-app/
+
 # Downloaded cloudflared binary — not source, platform-specific
 .bin/
 

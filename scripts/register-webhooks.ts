@@ -21,8 +21,7 @@
  *
  * Set COMETCHAT_MGMT_KEY / COMETCHAT_MGMT_SECRET (from Sales) in
  * .env.<APP_ENV> to run this for real. Until then it fails fast below with a
- * clear message — see src/tests/_shared/webhook-configuration.spec.ts, which
- * documents the same gap as explicit, reasoned test skips.
+ * clear message.
  *
  * NOTE: the exact webhook CRUD endpoint paths below (`/apps/{appId}/webhooks`
  * etc.) are transcribed from docs, not verified against a live call — this

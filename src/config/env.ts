@@ -62,6 +62,7 @@ function buildConfig(appEnv: AppEnvName): EnvironmentConfig {
     receiverQueryUrl: process.env.RECEIVER_QUERY_URL,
     mgmtKey: process.env.COMETCHAT_MGMT_KEY,
     mgmtSecret: process.env.COMETCHAT_MGMT_SECRET,
+    authKey: process.env.COMETCHAT_AUTH_KEY,
   };
   validateConfig(config);
 

@@ -35,9 +35,8 @@ webhook-automation/
     data/factories/           -> test data generation (fixed users, unique guids/message text)
     utils/                    -> logger, generic retry/poll, timeout budgets, id-generator, cleanup registry
     tests/                    -> one spec file per webhook for GROUP/MESSAGE/USER; category files for
-                                  calls/meetings/campaign/moderation (documented gaps); _shared/ for
-                                  cross-cutting suites (duplicate-delivery, negative cases, edge cases,
-                                  webhook-configuration CRUD)
+                                  calls/meetings/campaign/moderation/legacy (documented gaps); _shared/
+                                  for cross-cutting suites (duplicate-delivery, negative cases, edge cases)
   schemas/                    -> JSON Schema for the 3 automated categories (group/message/user) —
                                   see "Webhook coverage registry & report"
   scripts/
@@ -277,11 +276,43 @@ authoritative, per-webhook version of this:
 
 | Trigger(s) | Why it's blocked | Where |
 | --- | --- | --- |
-| Webhook create/update/enable/disable/delete, add/remove trigger | Needs a Multi-Tenancy Management API key (`COMETCHAT_MGMT_KEY`/`SECRET`) from CometChat Sales — the per-app REST key 404s against `apimgmt.cometchat.io` | `src/tests/_shared/webhook-configuration.spec.ts` (not part of the 51-webhook registry — this is CRUD on webhook *configuration*, not a webhook event itself) |
+| Webhook create/update/enable/disable/delete, add/remove trigger | Needs a Multi-Tenancy Management API key (`COMETCHAT_MGMT_KEY`/`SECRET`) from CometChat Sales — the per-app REST key 404s against `apimgmt.cometchat.io`. Not currently tracked as tests (removed — see git history for the prior explicit-skip version); `scripts/register-webhooks.ts` still automates this the moment those credentials exist | `scripts/register-webhooks.ts` |
 | Calls (9), Meetings (5) | No Calls SDK integration exists, and it's unconfirmed the add-on is even enabled on any of the 4 apps. A mocked/simulated call session would violate "never fake a PASS" | `src/registry/calls.registry.ts`, `meetings.registry.ts` |
 | Campaign/Notification events (10) | No Campaigns module integration exists, same unconfirmed-add-on situation | `src/registry/campaign.registry.ts` |
 | `moderation_engine_blocked`, `moderation_engine_approved` | See "Moderation" below — the trigger condition this project previously relied on no longer reproduces; most likely the Moderation webhook trigger category just isn't checked in the Dashboard, same pattern found for Group triggers | `src/registry/moderation.registry.ts` |
 | `moderation_manual_approved` | Dashboard-only human action (an admin manually approving flagged content) — no REST/SDK equivalent exists | `src/registry/moderation.registry.ts` |
+
+## UI-driven testing
+
+`src/clients/sample-app.client.ts` drives CometChat's own official React
+Sample App via Playwright — a real, visible browser clicking through a real
+chat UI (typing into the composer, hitting Send), instead of a REST call or
+a raw SDK method call. Login flow and selectors come directly from
+CometChat's own E2E suite that ships in that repo, not guesswork.
+
+**Setup** (not part of this repo — cloned locally, gitignored):
+
+```bash
+git clone https://github.com/cometchat/cometchat-sample-app-react.git sample-app
+cd sample-app/sample-app
+npm install
+npm run dev   # dev server — note the port it picks (falls back if 3005 is taken)
+```
+
+Needs `COMETCHAT_AUTH_KEY` set in `.env.<APP_ENV>` — a client-side (Auth
+Only scope) credential from the Dashboard's Credentials panel, distinct
+from `COMETCHAT_REST_API_KEY` and never sent to the REST API. If the dev
+server isn't on `localhost:3006`, set `SAMPLE_APP_URL` to match.
+
+**Known finding**: `message_sent` does not fire for messages sent through
+the SDK's real-time path at all (confirmed live — true for the Sample App
+*and* a raw `CometChat.sendMessage()` call, so it's not UI-specific) —
+only for REST-created messages, which is how every message in this
+project has been sent until now. This isn't fixable from here; it means
+UI-driven testing can't add new coverage for `message_sent` itself, but
+remains useful for triggers that only fire from a live connected client
+(moderation, receipts, connection status) and for visually demoing the
+suite.
 
 ## CometChat's built-in Moderation Engine
 

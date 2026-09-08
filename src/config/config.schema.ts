@@ -23,6 +23,8 @@ export interface EnvironmentConfig {
   /** Multi-Tenancy Management API creds — only set once CometChat Sales provisions them */
   mgmtKey?: string;
   mgmtSecret?: string;
+  /** Client-side (Auth Only scope) credential — only needed for UI-driven testing through the real Sample App (src/clients/sample-app.client.ts). Never sent to the REST API. */
+  authKey?: string;
 }
 
 const REQUIRED_KEYS: (keyof EnvironmentConfig)[] = [
