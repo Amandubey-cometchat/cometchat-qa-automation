@@ -103,9 +103,8 @@
   }
   .sidebar-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    flex-direction: column;
+    gap: 6px;
     padding: 9px 12px;
     border-radius: 8px;
     font-size: 13px;
@@ -115,6 +114,24 @@
     border: 1px solid transparent;
     text-align: left;
     width: 100%;
+  }
+  .sidebar-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+  }
+  .sidebar-progress {
+    height: 3px;
+    border-radius: 2px;
+    background: #1f2330;
+    overflow: hidden;
+  }
+  .sidebar-progress__fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
   }
   .sidebar-item:hover { background: #1a1d28; color: var(--text); }
   .sidebar-item.active {
@@ -158,6 +175,11 @@
     overflow: hidden;
   }
   .event.dup { border-color: var(--warn); }
+  .event--new { animation: flash-new 1.8s ease-out; }
+  @keyframes flash-new {
+    0% { background: rgba(108,140,255,0.22); }
+    100% { background: var(--panel); }
+  }
   .dup-badge {
     font-size: 11px;
     font-weight: 700;
@@ -417,6 +439,7 @@
   document.getElementById('envBadge').textContent = window.location.hostname;
 
   const openIds = new Set();
+  const seenEventIds = new Set(); // for the new-arrival highlight flash — see render()
   let knownTriggers = new Set();
   let lastRenderKey = '';
 
@@ -437,6 +460,16 @@
     { key: 'MODERATION', label: 'Moderation', registryCats: ['MODERATION'] },
     { key: 'LEGACY', label: 'Legacy', registryCats: ['LEGACY'] },
   ];
+  const CATEGORY_COLORS = {
+    GROUP: '#6c8cff',
+    CALL_MEETING: '#ff9d5c',
+    MESSAGE: '#33c07a',
+    CAMPAIGN: '#ff6ec7',
+    USER: '#5cd9ff',
+    MODERATION: '#e2a33d',
+    LEGACY: '#a794ff',
+    OTHER: '#8b91a7',
+  };
   let triggerToCategory = {}; // trigger name -> registry category, for grouping LIVE events (collision-resolved, see generate-trigger-categories.ts)
   let categoryTotals = {}; // registry category -> how many webhooks are REGISTERED there, no collision resolution
   let selectedCategory = ''; // '' = All
@@ -491,13 +524,18 @@
     }
 
     sidebarEl.innerHTML = items
-      .map(
-        (it) => `
+      .map((it) => {
+        const color = CATEGORY_COLORS[it.key] || 'var(--accent)';
+        const pct = it.total ? Math.round((100 * it.fired) / it.total) : it.key === '' ? Math.round((100 * it.fired) / (grandTotal || 1)) : 0;
+        return `
         <button class="sidebar-item ${selectedCategory === it.key ? 'active' : ''}" data-cat="${it.key}">
-          <span>${escapeHtml(it.label)}</span>
-          <span class="sidebar-count">${it.total == null ? it.fired : it.fired + '/' + it.total}</span>
-        </button>`
-      )
+          <div class="sidebar-item-row">
+            <span>${escapeHtml(it.label)}</span>
+            <span class="sidebar-count">${it.total == null ? it.fired : it.fired + '/' + it.total}</span>
+          </div>
+          <div class="sidebar-progress"><div class="sidebar-progress__fill" style="width:${pct}%; background:${color};"></div></div>
+        </button>`;
+      })
       .join('');
   }
 
@@ -514,6 +552,17 @@
   function fmtTime(ms) {
     const d = new Date(ms);
     return d.toLocaleTimeString(undefined, { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+  }
+
+  function fmtRelativeTime(ms) {
+    const diffSec = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (diffSec < 5) return 'just now';
+    if (diffSec < 60) return diffSec + 's ago';
+    const diffMin = Math.round(diffSec / 60);
+    if (diffMin < 60) return diffMin + 'm ago';
+    const diffHr = Math.round(diffMin / 60);
+    if (diffHr < 24) return diffHr + 'h ago';
+    return Math.round(diffHr / 24) + 'd ago';
   }
 
   function escapeHtml(str) {
@@ -645,19 +694,21 @@
     return dupInfo;
   }
 
-  function renderEventCard(e, dupInfo) {
+  function renderEventCard(e, dupInfo, newIds) {
     const id = eventId(e);
     const open = openIds.has(id);
     const dup = dupInfo.get(id);
+    const isNew = newIds.has(id);
+    const color = CATEGORY_COLORS[displayCategoryOf(e.trigger)] || CATEGORY_COLORS.OTHER;
     const dupBadge = dup
       ? `<span class="dup-badge" title="Same ${escapeHtml(e.trigger)} event delivered ${dup.count} times (this is delivery ${dup.index}, ${dup.deltaMs}ms after the first) — possible duplicate delivery">⚠ ${dup.index}/${dup.count} duplicate</span>`
       : '';
     return `
-    <div class="event ${open ? 'open' : ''} ${dup ? 'dup' : ''}" data-id="${id}">
+    <div class="event ${open ? 'open' : ''} ${dup ? 'dup' : ''} ${isNew ? 'event--new' : ''}" data-id="${id}" style="border-left: 3px solid ${color};">
       <div class="event-head" onclick="window.__toggle('${id}')">
         <span class="chevron">▶</span>
         <span class="badge">${escapeHtml(e.trigger || 'unknown')}</span>
-        <span class="time">${fmtTime(e.receivedAt)}</span>
+        <span class="time" title="Relative time refreshes when new events arrive">${fmtRelativeTime(e.receivedAt)} · ${fmtTime(e.receivedAt)}</span>
         ${dupBadge}
         <span class="summary">${escapeHtml(summarize(e.payload))}</span>
       </div>
@@ -672,6 +723,17 @@
 
   function render(events) {
     renderSidebar(events);
+
+    // Tracked against the FULL event set (not the filtered view) and
+    // updated on every poll regardless of whether we go on to re-render —
+    // otherwise switching filters later would make already-arrived events
+    // flash as "new" just because they weren't visible when they landed.
+    const newIds = new Set();
+    for (const e of events) {
+      const id = eventId(e);
+      if (!seenEventIds.has(id)) newIds.add(id);
+      seenEventIds.add(id);
+    }
 
     const catFiltered = selectedCategory ? events.filter((e) => displayCategoryOf(e.trigger) === selectedCategory) : events;
     const filter = filterEl.value;
@@ -694,7 +756,7 @@
     listEl.innerHTML = filtered
       .slice()
       .reverse()
-      .map((e) => renderEventCard(e, dupInfo))
+      .map((e) => renderEventCard(e, dupInfo, newIds))
       .join('');
   }
 
