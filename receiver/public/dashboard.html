@@ -458,8 +458,7 @@
     return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  function highlightJson(obj) {
-    const json = JSON.stringify(obj, null, 2);
+  function highlightJsonString(json) {
     const escaped = escapeHtml(json);
     return escaped.replace(
       /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?([eE][+-]?\d+)?)/g,
@@ -473,6 +472,35 @@
         return `<span class="${cls}">${match}</span>`;
       }
     );
+  }
+
+  function highlightJson(obj) {
+    return highlightJsonString(JSON.stringify(obj, null, 2));
+  }
+
+  /**
+   * Failure/skip reasons are plain strings that often *contain* a raw JSON
+   * error body pasted inline (e.g. CometChat REST errors:
+   * 'POST /messages failed: 403 {"error":{...}}') rather than being pure
+   * JSON themselves. Finds and syntax-highlights just the embedded JSON
+   * part, pretty-printed, while leaving the surrounding message as plain
+   * text — falls back to plain escaped text if there's no valid JSON to
+   * find, so timeout-style messages (no JSON at all) still render fine.
+   */
+  function formatReason(text) {
+    if (!text) return '';
+    const jsonStart = text.indexOf('{');
+    if (jsonStart === -1) return escapeHtml(text);
+
+    const prefix = text.slice(0, jsonStart);
+    const jsonPart = text.slice(jsonStart);
+    try {
+      const parsed = JSON.parse(jsonPart);
+      const pretty = JSON.stringify(parsed, null, 2);
+      return escapeHtml(prefix) + highlightJsonString(pretty);
+    } catch {
+      return escapeHtml(text);
+    }
   }
 
   function summarize(payload) {
@@ -801,7 +829,12 @@
             </div>
             <span class="time">${fmtDuration(t.duration)}</span>
           </div>
-          ${canExpand ? `<div class="event-body"><pre class="reason-box ${reasonClass}">${escapeHtml(reason)}</pre></div>` : ''}
+          ${canExpand ? `<div class="event-body">
+            <pre class="reason-box ${reasonClass}">${formatReason(reason)}</pre>
+            <div class="copy-row">
+              <button onclick='window.__copy(${JSON.stringify(reason)})'>Copy</button>
+            </div>
+          </div>` : ''}
         </div>`;
       })
       .join('');
