@@ -1,9 +1,13 @@
 /**
  * Bootstraps a new environment: creates the two fixed test users this suite
- * expects (qa-user-1, qa-user-2) — they're never created automatically by
- * the test run itself. Safe to re-run; CometChat's Create User endpoint is
- * idempotent-ish in practice (a duplicate uid just 400s, which this script
- * treats as "already exists" and moves on rather than failing).
+ * expects (see user.factory.ts — CometChat's default Sample App demo users,
+ * cometchat-uid-1/cometchat-uid-2). In practice these already exist on any
+ * app created with sample-data seeding on (confirmed live across all four
+ * environments here), so this is usually a no-op. Kept as a fallback for
+ * the rare app that had seeding declined — safe to re-run; CometChat's
+ * Create User endpoint is idempotent-ish in practice (a duplicate uid just
+ * 400s, which this script treats as "already exists" and moves on rather
+ * than failing).
  *
  * Run: APP_ENV=<name> npx tsx scripts/setup.ts
  * (APP_ENV=prod-* also needs CONFIRM_PROD=yes, same as running tests.)

@@ -40,7 +40,7 @@ webhook-automation/
   schemas/                    -> JSON Schema for the 3 automated categories (group/message/user) —
                                   see "Webhook coverage registry & report"
   scripts/
-    setup.ts                 -> creates qa-user-1/qa-user-2 on the target environment
+    setup.ts                 -> fallback: creates the 2 fixed test users if not already seeded on the target app
     cleanup.ts                -> sweeps stray "qa-" groups left by a crashed run
     register-webhooks.ts      -> webhook CRUD via CometChat's Management API (see Known limitations)
     upload-test-results.ts    -> pushes a local test run's results to the deployed receiver
@@ -124,7 +124,7 @@ npm install
 cp .env.example .env.staging-us   # fill in COMETCHAT_APP_ID, COMETCHAT_REGION,
                                    # COMETCHAT_REST_API_KEY, WEBHOOK_RECEIVER_URL,
                                    # RECEIVER_QUERY_URL — see "Multiple environments"
-npm run setup                     # creates qa-user-1 / qa-user-2 on that app
+npm run setup                     # usually a no-op — see "Multiple environments"
 npm run test:staging
 ```
 
@@ -217,7 +217,11 @@ prod-eu`, app ID, region) before a single test executes.
    as "Step 1" above, just a new Render Web Service from the same repo.
 3. Fill in that receiver's URL as `WEBHOOK_RECEIVER_URL`/`RECEIVER_QUERY_URL`
    in the new `.env.<name>` file
-4. `APP_ENV=<name> npm run setup` — creates `qa-user-1`/`qa-user-2` on that app
+4. `APP_ENV=<name> npm run setup` — the suite's two fixed test users
+   (`cometchat-uid-1`/`cometchat-uid-2`, see `src/data/factories/user.factory.ts`)
+   are CometChat's own Sample App demo users, seeded automatically on app
+   creation — this step is usually a no-op, just a safety net for the rare
+   app that had sample-data seeding declined
 5. Add a **new, separate** webhook on that app in the Dashboard (Step 2 above)
    pointing at the new receiver — never repoint an existing webhook that
    might already drive real business logic on a prod app
