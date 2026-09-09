@@ -92,6 +92,12 @@ async function canaryCheck(expectMode: 'legacy' | 'modern'): Promise<boolean> {
     console.log(`LEGACY WEBHOOK TEST RUN: ${appEnv}`);
     console.log('========================================');
 
+    // Same opening steps every other test:* script does — open the
+    // receiver's dashboard so events can be watched live, and clear its
+    // history/last-results so this run starts from a clean view.
+    execSync('npx tsx scripts/open-dashboard.ts', { stdio: 'inherit' });
+    execSync('npx tsx scripts/clear-history.ts', { stdio: 'inherit' });
+
     console.log('\nStep 1 — switch this app to LEGACY webhook mode in the CometChat Dashboard:');
     console.log('  1. Go to the Legacy Webhooks section for this app');
     console.log(`  2. Webhook URL must end in /webhook (i.e. ${receiverQueryUrl}/webhook) — the bare receiver URL 404s`);
@@ -113,6 +119,16 @@ async function canaryCheck(expectMode: 'legacy' | 'modern'): Promise<boolean> {
       execSync('npx playwright test src/tests/legacy/', { stdio: 'inherit' });
     } catch {
       testsFailed = true;
+    }
+
+    // Same closing steps every other test:* script does — push results to
+    // the dashboard's Test Results tab and regenerate the coverage report,
+    // regardless of pass/fail.
+    try {
+      execSync('npx tsx scripts/upload-test-results.ts', { stdio: 'inherit' });
+      execSync('npx tsx scripts/generate-coverage.ts', { stdio: 'inherit' });
+    } catch (err: any) {
+      console.warn(`\nCould not upload results / regenerate coverage: ${err.message}`);
     }
 
     // Always attempt the revert, even if the run above crashed or failed —
