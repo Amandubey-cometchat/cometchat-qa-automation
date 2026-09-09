@@ -35,8 +35,9 @@ webhook-automation/
     triggers/                 -> the action that produces a webhook, one file per category (orchestrates clients)
     data/factories/           -> test data generation (fixed users, unique guids/message text)
     utils/                    -> logger, generic retry/poll, timeout budgets, id-generator, cleanup registry
-    tests/                    -> one spec file per webhook for GROUP/MESSAGE/USER/MODERATION and 4 of 9 CALLS
-                                  triggers; category gap files for the rest of calls/meetings/campaign/legacy; _shared/
+    tests/                    -> one spec file per webhook for GROUP/MESSAGE/USER/MODERATION, all 9 CALLS
+                                  triggers, and before_message (LEGACY); category gap files for the rest of
+                                  meetings/campaign/legacy — see "Legacy webhooks" below for that category; _shared/
                                   for cross-cutting suites (duplicate-delivery, negative cases, edge cases)
   schemas/                    -> JSON Schema for the 3 automated categories (group/message/user) —
                                   see "Webhook coverage registry & report"
@@ -145,6 +146,11 @@ app (parallel runs would race on the receiver's shared event store — see
 for that environment. `npm run test:webhooks` additionally uploads results to
 the deployed receiver so its dashboard's Test Results tab reflects them (see
 "Receiver hosting").
+
+None of the commands above touch Legacy webhooks — that's a separate,
+guarded flow (`npm run test:legacy:prod:eu`, etc.) since it requires a
+manual Dashboard toggle that temporarily disables the modern webhook
+config these commands depend on. See "Legacy webhooks" below.
 
 Useful variants:
 - `npm run test:staging -- --grep group` / `npm run test:prod:eu -- --grep message` —
@@ -285,6 +291,7 @@ authoritative, per-webhook version of this:
 | `call_started`, `call_participant_joined`, `call_participant_left`, `call_ended`, `call_busy` (5), Meetings (5) | Needs actually joining the WebRTC session via `@cometchat/calls-sdk-javascript`, not just Chat SDK signaling — confirmed live 2026-09-09 (call_busy specifically: accepting at the signaling level without joining the media session does not make the receiver "busy"). The other 4 Calls triggers (`call_initiated`/`call_unanswered`/`call_cancelled`/`call_rejected`) are automated — see `src/triggers/calls/calls.triggers.ts` | `src/registry/calls.registry.ts`, `meetings.registry.ts` |
 | Campaign/Notification events (10) | No Campaigns module integration exists, and CometChat's entire current documentation has zero results for "campaign" (searched live 2026-09-09) — needs either a DevTools network capture of the Dashboard's Campaign UI, or direct confirmation from CometChat | `src/registry/campaign.registry.ts` |
 | `moderation_manual_approved` | Dashboard-only human action (an admin manually approving flagged content) — no REST/SDK equivalent exists | `src/registry/moderation.registry.ts` |
+| `after_message`, `message_delivery_receipt`/`message_read_receipt`/`after_connection_status_changed` (LEGACY) | Each still needs its own live capture the same way `before_message` got one — see "Legacy webhooks" below for why these can't just be run like everything else | `src/registry/legacy.registry.ts` |
 
 ## UI-driven testing
 
@@ -317,6 +324,52 @@ UI-driven testing can't add new coverage for `message_sent` itself, but
 remains useful for triggers that only fire from a live connected client
 (moderation, receipts, connection status) and for visually demoing the
 suite.
+
+## Legacy webhooks
+
+CometChat has a second, older webhook mechanism — 5 triggers
+(`after_message`, `before_message`, `message_delivery_receipt`,
+`message_read_receipt`, `after_connection_status_changed`) — completely
+separate from the ~56-trigger system the rest of this suite is built
+around. Confirmed live: **a given app can only have one system active at
+a time**. Switching an app to Legacy mode in the Dashboard disables the
+modern webhook config every other automated test in this project depends
+on, and there is no API to toggle between them — searched CometChat's
+entire Webhooks Management API reference (2026-09-09): zero mentions of
+"legacy" anywhere in it.
+
+Given that, Legacy tests can't run as part of the regular suite, or
+safely without a deliberate, guarded process. `scripts/test-legacy.ts` is
+that process:
+
+```bash
+npm run test:legacy:prod:eu      # also test:legacy:prod:us / :prod:in / :staging
+```
+
+It:
+
+1. Prints exact Dashboard instructions to switch to Legacy mode, and
+   waits for your explicit confirmation before doing anything.
+2. Sends one real "canary" message and confirms a Legacy-only trigger
+   actually fires — refuses to proceed otherwise, rather than running the
+   whole suite against a config that silently didn't take.
+3. Runs the real Legacy spec files (`src/tests/legacy/`).
+4. **Always** (pass, fail, or crash) prompts you to switch back to Modern
+   mode, then runs the canary check again in reverse to prove the revert
+   actually worked — a forgotten revert fails loudly here instead of
+   silently breaking the other 35 automated tests on their next run.
+
+**Status**: `before_message` is automated (live-verified 2026-09-09,
+prod-eu). The other 4 still need their own live capture before they can
+be trusted — see `src/registry/legacy.registry.ts`.
+
+**`before_message` is the one synchronous webhook in this whole
+project** — CometChat calls the receiver and waits for the response,
+which can inject metadata (`{"@injected": {"webhooks": {"<id>": {...}}}}`)
+or drop the message entirely (`{"action": "do_not_propagate"}`).
+`receiver/index.js` responds with an empty object for it specifically —
+neither documented shape, so CometChat delivers the message unmodified —
+distinct from every other trigger's fire-and-forget `{ok:true, id}` ack.
 
 ## CometChat's built-in Moderation Engine
 

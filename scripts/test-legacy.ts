@@ -19,7 +19,7 @@
  *      for confirmation, then runs the canary check in reverse — proving
  *      Modern mode is genuinely restored — before exiting. If the revert
  *      didn't take, this fails LOUDLY here rather than silently breaking
- *      the other 61 automated tests on their next run.
+ *      the other 35 automated tests on their next run.
  *
  * Run: APP_ENV=<name> npx tsx scripts/test-legacy.ts
  * (APP_ENV=prod-* also needs CONFIRM_PROD=yes, same as every other script.)
@@ -97,7 +97,7 @@ async function canaryCheck(expectMode: 'legacy' | 'modern'): Promise<boolean> {
     console.log(`  2. Webhook URL must end in /webhook (i.e. ${receiverQueryUrl}/webhook) — the bare receiver URL 404s`);
     console.log('  3. Check these triggers: after_message, before_message, message_delivery_receipt, message_read_receipt, after_connection_status_changed');
     console.log('  4. "Enable Webhook" must be checked, then Save');
-    console.log('\n  This DISABLES the modern webhook config the other 61 automated tests depend on.');
+    console.log('\n  This DISABLES the modern webhook config the other 35 automated tests depend on.');
     await ask('\nPress Enter once Legacy mode is active and saved... ');
 
     const legacyConfirmed = await canaryCheck('legacy');
@@ -124,7 +124,7 @@ async function canaryCheck(expectMode: 'legacy' | 'modern'): Promise<boolean> {
     const modernRestored = await canaryCheck('modern');
     if (!modernRestored) {
       console.error(
-        '\n[WARNING] Modern mode does not appear to be restored. The other 61 automated tests will fail until ' +
+        '\n[WARNING] Modern mode does not appear to be restored. The other 35 automated tests will fail until ' +
           'this is fixed — re-check the Dashboard before running anything else against this app.'
       );
       process.exitCode = 1;
