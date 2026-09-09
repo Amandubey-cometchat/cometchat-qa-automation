@@ -21,8 +21,9 @@ webhook-automation/
       users.client.ts / groups.client.ts / messages.client.ts
       sdk.client.ts         -> real CometChat JS SDK session in a Playwright browser (WebSocket-only triggers)
       moderation.client.ts  -> probe-message senders for moderation testing
-      meetings.client.ts / campaigns.client.ts -> NotImplementedError stubs (see Known limitations)
-      (Calls signaling now lives in sdk.client.ts + triggers/calls/calls.triggers.ts — see below)
+      campaigns.client.ts   -> NotImplementedError stub (see Known limitations)
+      call-session.client.ts -> real WebRTC session join (@cometchat/calls-sdk-javascript, fake media device) — used by both Calls and Meetings
+      (Calls signaling lives in sdk.client.ts + triggers/calls/calls.triggers.ts; Meetings in triggers/meetings/meetings.triggers.ts — see below)
     webhook/                -> the "listener" layer — a test-side client for the deployed receiver
       webhook.listener.ts   -> public facade tests import (re-exports everything below)
       webhook.store.ts      -> reset/fetch events from the receiver
@@ -36,9 +37,10 @@ webhook-automation/
     data/factories/           -> test data generation (fixed users, unique guids/message text)
     utils/                    -> logger, generic retry/poll, timeout budgets, id-generator, cleanup registry
     tests/                    -> one spec file per webhook for GROUP/MESSAGE/USER/MODERATION, all 9 CALLS
-                                  triggers, and before_message (LEGACY); category gap files for the rest of
-                                  meetings/campaign/legacy — see "Legacy webhooks" below for that category; _shared/
-                                  for cross-cutting suites (duplicate-delivery, negative cases, edge cases)
+                                  triggers, 4 of 6 MEETINGS triggers, and before_message (LEGACY); category
+                                  gap files for the rest of meetings/campaign/legacy — see "Legacy webhooks"
+                                  below for that category; _shared/ for cross-cutting suites (duplicate-
+                                  delivery, negative cases, edge cases)
   schemas/                    -> JSON Schema for the 3 automated categories (group/message/user) —
                                   see "Webhook coverage registry & report"
   scripts/
@@ -288,7 +290,7 @@ authoritative, per-webhook version of this:
 | Trigger(s) | Why it's blocked | Where |
 | --- | --- | --- |
 | Webhook create/update/enable/disable/delete, add/remove trigger | Needs a Multi-Tenancy Management API key (`COMETCHAT_MGMT_KEY`/`SECRET`) from CometChat Sales — the per-app REST key 404s against `apimgmt.cometchat.io`. Not currently tracked as tests (removed — see git history for the prior explicit-skip version); `scripts/register-webhooks.ts` still automates this the moment those credentials exist | `scripts/register-webhooks.ts` |
-| `call_started`, `call_participant_joined`, `call_participant_left`, `call_ended`, `call_busy` (5), Meetings (5) | Needs actually joining the WebRTC session via `@cometchat/calls-sdk-javascript`, not just Chat SDK signaling — confirmed live 2026-09-09 (call_busy specifically: accepting at the signaling level without joining the media session does not make the receiver "busy"). The other 4 Calls triggers (`call_initiated`/`call_unanswered`/`call_cancelled`/`call_rejected`) are automated — see `src/triggers/calls/calls.triggers.ts` | `src/registry/calls.registry.ts`, `meetings.registry.ts` |
+| `recording_generated`, `transcription_generated` | Recording needs confirmation it's enabled for these apps (async — real processing delay after the session ends); transcription is a separate paid Rev.ai-backed extension needing its own account and Dashboard setup, not something more research can resolve. All 9 Calls and the other 4 Meetings triggers are automated — see `src/triggers/calls/calls.triggers.ts`, `meetings.triggers.ts` | `src/registry/meetings.registry.ts` |
 | Campaign/Notification events (10) | No Campaigns module integration exists, and CometChat's entire current documentation has zero results for "campaign" (searched live 2026-09-09) — needs either a DevTools network capture of the Dashboard's Campaign UI, or direct confirmation from CometChat | `src/registry/campaign.registry.ts` |
 | `moderation_manual_approved` | Dashboard-only human action (an admin manually approving flagged content) — no REST/SDK equivalent exists | `src/registry/moderation.registry.ts` |
 | `after_message`, `message_delivery_receipt`/`message_read_receipt`/`after_connection_status_changed` (LEGACY) | Each still needs its own live capture the same way `before_message` got one — see "Legacy webhooks" below for why these can't just be run like everything else | `src/registry/legacy.registry.ts` |
@@ -357,7 +359,7 @@ It:
 4. **Always** (pass, fail, or crash) prompts you to switch back to Modern
    mode, then runs the canary check again in reverse to prove the revert
    actually worked — a forgotten revert fails loudly here instead of
-   silently breaking the other 35 automated tests on their next run.
+   silently breaking the rest of the automated suite on their next run.
 
 **Status**: `before_message` is automated (live-verified 2026-09-09,
 prod-eu). The other 4 still need their own live capture before they can
