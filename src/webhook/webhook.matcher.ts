@@ -31,6 +31,11 @@ export function byUserConnectionStatus(uid: string, action: 'connected' | 'disco
   return (p) => p?.data?.user?.uid === uid && p?.data?.currentConnection?.action === action;
 }
 
+/** Calls webhooks correlate via sessionId (unique per call attempt), not message id — verified live 2026-09-09. */
+export function byCallSessionId(sessionId: string): WebhookMatcher {
+  return (p) => p?.data?.call?.data?.entities?.on?.entity?.sessionid === sessionId;
+}
+
 export function and(...matchers: WebhookMatcher[]): WebhookMatcher {
   return (p) => matchers.every((m) => m(p));
 }

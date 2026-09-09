@@ -21,7 +21,8 @@ webhook-automation/
       users.client.ts / groups.client.ts / messages.client.ts
       sdk.client.ts         -> real CometChat JS SDK session in a Playwright browser (WebSocket-only triggers)
       moderation.client.ts  -> probe-message senders for moderation testing
-      calls.client.ts / meetings.client.ts / campaigns.client.ts -> NotImplementedError stubs (see Known limitations)
+      meetings.client.ts / campaigns.client.ts -> NotImplementedError stubs (see Known limitations)
+      (Calls signaling now lives in sdk.client.ts + triggers/calls/calls.triggers.ts — see below)
     webhook/                -> the "listener" layer — a test-side client for the deployed receiver
       webhook.listener.ts   -> public facade tests import (re-exports everything below)
       webhook.store.ts      -> reset/fetch events from the receiver
@@ -34,8 +35,8 @@ webhook-automation/
     triggers/                 -> the action that produces a webhook, one file per category (orchestrates clients)
     data/factories/           -> test data generation (fixed users, unique guids/message text)
     utils/                    -> logger, generic retry/poll, timeout budgets, id-generator, cleanup registry
-    tests/                    -> one spec file per webhook for GROUP/MESSAGE/USER; category files for
-                                  calls/meetings/campaign/moderation/legacy (documented gaps); _shared/
+    tests/                    -> one spec file per webhook for GROUP/MESSAGE/USER/MODERATION and 4 of 9 CALLS
+                                  triggers; category gap files for the rest of calls/meetings/campaign/legacy; _shared/
                                   for cross-cutting suites (duplicate-delivery, negative cases, edge cases)
   schemas/                    -> JSON Schema for the 3 automated categories (group/message/user) —
                                   see "Webhook coverage registry & report"
@@ -281,9 +282,8 @@ authoritative, per-webhook version of this:
 | Trigger(s) | Why it's blocked | Where |
 | --- | --- | --- |
 | Webhook create/update/enable/disable/delete, add/remove trigger | Needs a Multi-Tenancy Management API key (`COMETCHAT_MGMT_KEY`/`SECRET`) from CometChat Sales — the per-app REST key 404s against `apimgmt.cometchat.io`. Not currently tracked as tests (removed — see git history for the prior explicit-skip version); `scripts/register-webhooks.ts` still automates this the moment those credentials exist | `scripts/register-webhooks.ts` |
-| Calls (9), Meetings (5) | No Calls SDK integration exists, and it's unconfirmed the add-on is even enabled on any of the 4 apps. A mocked/simulated call session would violate "never fake a PASS" | `src/registry/calls.registry.ts`, `meetings.registry.ts` |
-| Campaign/Notification events (10) | No Campaigns module integration exists, same unconfirmed-add-on situation | `src/registry/campaign.registry.ts` |
-| `moderation_engine_blocked`, `moderation_engine_approved` | See "Moderation" below — the trigger condition this project previously relied on no longer reproduces; most likely the Moderation webhook trigger category just isn't checked in the Dashboard, same pattern found for Group triggers | `src/registry/moderation.registry.ts` |
+| `call_started`, `call_participant_joined`, `call_participant_left`, `call_ended`, `call_busy` (5), Meetings (5) | Needs actually joining the WebRTC session via `@cometchat/calls-sdk-javascript`, not just Chat SDK signaling — confirmed live 2026-09-09 (call_busy specifically: accepting at the signaling level without joining the media session does not make the receiver "busy"). The other 4 Calls triggers (`call_initiated`/`call_unanswered`/`call_cancelled`/`call_rejected`) are automated — see `src/triggers/calls/calls.triggers.ts` | `src/registry/calls.registry.ts`, `meetings.registry.ts` |
+| Campaign/Notification events (10) | No Campaigns module integration exists, and CometChat's entire current documentation has zero results for "campaign" (searched live 2026-09-09) — needs either a DevTools network capture of the Dashboard's Campaign UI, or direct confirmation from CometChat | `src/registry/campaign.registry.ts` |
 | `moderation_manual_approved` | Dashboard-only human action (an admin manually approving flagged content) — no REST/SDK equivalent exists | `src/registry/moderation.registry.ts` |
 
 ## UI-driven testing

@@ -28,6 +28,11 @@ export interface SdkClient {
   leaveGroup(guid: string): Promise<{ hasLeft: boolean }>;
   markAsDelivered(messageId: string | number, receiverId: string, receiverType: 'user' | 'group', senderId: string): Promise<void>;
   markAsRead(messageId: string | number, receiverId: string, receiverType: 'user' | 'group', senderId: string): Promise<void>;
+  /** Places an outgoing call — no REST equivalent (the Calls REST API is read-only: List/Get call logs. Verified live 2026-09-09). `timeoutSeconds` overrides CometChat's default 45s ring timeout, e.g. for call_unanswered tests. */
+  initiateCall(receiverUid: string, callType: 'audio' | 'video', timeoutSeconds?: number): Promise<{ sessionId: string }>;
+  acceptCall(sessionId: string): Promise<{ sessionId: string }>;
+  /** `status` is CometChat.CALL_STATUS.REJECTED ('rejected', receiver declining) or .CANCELLED ('cancelled', initiator backing out before pickup) — same underlying method, different status per CometChat's docs. */
+  rejectCall(sessionId: string, status: 'rejected' | 'cancelled'): Promise<void>;
   disconnect(): Promise<void>;
   close(): Promise<void>;
 }
@@ -88,6 +93,33 @@ export async function launchSdkClient(uid: string, authToken: string): Promise<S
         // @ts-ignore
         ({ messageId, receiverId, receiverType, senderId }) => CometChat.markAsRead(String(messageId), receiverId, receiverType, senderId),
         { messageId, receiverId, receiverType, senderId }
+      );
+    },
+    async initiateCall(receiverUid, callType, timeoutSeconds) {
+      return page.evaluate(
+        ({ receiverUid, callType, timeoutSeconds }) => {
+          // @ts-ignore
+          const call = new CometChat.Call(receiverUid, callType === 'video' ? CometChat.CALL_TYPE.VIDEO : CometChat.CALL_TYPE.AUDIO, CometChat.RECEIVER_TYPE.USER);
+          // @ts-ignore
+          const promise = timeoutSeconds !== undefined ? CometChat.initiateCall(call, timeoutSeconds) : CometChat.initiateCall(call);
+          return promise.then((outgoingCall: any) => ({ sessionId: outgoingCall.getSessionId() }));
+        },
+        { receiverUid, callType, timeoutSeconds }
+      );
+    },
+    async acceptCall(sessionId) {
+      return page.evaluate(
+        // @ts-ignore
+        ({ sessionId }) => CometChat.acceptCall(sessionId).then((call: any) => ({ sessionId: call.getSessionId() })),
+        { sessionId }
+      );
+    },
+    async rejectCall(sessionId, status) {
+      return page.evaluate(
+        ({ sessionId, status }) =>
+          // @ts-ignore
+          CometChat.rejectCall(sessionId, status === 'cancelled' ? CometChat.CALL_STATUS.CANCELLED : CometChat.CALL_STATUS.REJECTED).then(() => undefined),
+        { sessionId, status }
       );
     },
     async disconnect() {
