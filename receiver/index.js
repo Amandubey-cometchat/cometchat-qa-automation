@@ -61,6 +61,23 @@ app.post('/webhook', checkAuth, (req, res) => {
   events.push(event);
   history.push(event);
   saveHistory();
+
+  // before_message (legacy webhook system only) is the one synchronous
+  // trigger in this whole project — CometChat waits for and uses the
+  // response, per the documented contract:
+  //   inject metadata: {"@injected": {"webhooks": {"<id>": {...}}}}
+  //   drop the message: {"action": "do_not_propagate"}
+  // An empty object is neither, so CometChat should deliver the message
+  // unmodified — the "no special action" case. Every other trigger is
+  // fire-and-forget and gets the {ok:true, id} ack below; sending that same
+  // shape for before_message doesn't match either documented contract
+  // either, and was suspected (not yet proven) of interfering with
+  // after_message firing afterward for the same message — see git history
+  // for the live A/B test this change is meant to settle.
+  if (payload.trigger === 'before_message') {
+    return res.status(200).json({});
+  }
+
   // Respond fast — CometChat expects 200 OK quickly.
   res.status(200).json({ ok: true, id: event.id });
 });
