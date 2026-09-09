@@ -50,3 +50,46 @@ export function validateCallCancelled(payload: ReceivedWebhookPayload, expected:
 export function validateCallRejected(payload: ReceivedWebhookPayload, expected: { sessionId: string; sender: string; receiver: string }) {
   validateCallEnvelope(payload, 'call_rejected', { ...expected, action: 'rejected', by: expected.receiver });
 }
+
+/**
+ * call_busy is signaled explicitly (CometChat.rejectCall(sessionId, BUSY))
+ * by the already-busy receiver — not automatic. Confirmed live 2026-09-09:
+ * a second call to someone already on an active call just rings normally
+ * unless the receiving client detects this itself and rejects as busy.
+ * Same envelope shape as call_rejected — `by` is the busy receiver.
+ */
+export function validateCallBusy(payload: ReceivedWebhookPayload, expected: { sessionId: string; sender: string; receiver: string }) {
+  validateCallEnvelope(payload, 'call_busy', { ...expected, action: 'busy', by: expected.receiver });
+}
+
+/**
+ * The 4 media-session triggers below use a completely different, flatter
+ * payload shape than the signaling ones above — they come from CometChat's
+ * separate RTC infrastructure, not the chat-message-action layer. Confirmed
+ * live 2026-09-09 via a real 2-party call, fully joined via
+ * @cometchat/calls-sdk-javascript (src/clients/call-session.client.ts).
+ */
+
+export function validateCallStarted(payload: ReceivedWebhookPayload, expected: { sessionId: string }) {
+  validateEnvelope(payload, 'call_started');
+  expect(payload.data.sessionId).toBe(expected.sessionId);
+}
+
+export function validateCallParticipantJoined(payload: ReceivedWebhookPayload, expected: { sessionId: string; uid: string }) {
+  validateEnvelope(payload, 'call_participant_joined');
+  expect(payload.data.sessionId).toBe(expected.sessionId);
+  expect(payload.data.occupant.uid).toBe(expected.uid);
+}
+
+export function validateCallParticipantLeft(payload: ReceivedWebhookPayload, expected: { sessionId: string; uid: string }) {
+  validateEnvelope(payload, 'call_participant_left');
+  expect(payload.data.sessionId).toBe(expected.sessionId);
+  expect(payload.data.occupant.uid).toBe(expected.uid);
+}
+
+export function validateCallEnded(payload: ReceivedWebhookPayload, expected: { sessionId: string; participantUids: string[] }) {
+  validateEnvelope(payload, 'call_ended');
+  expect(payload.data.sessionId).toBe(expected.sessionId);
+  const uids = payload.data.all_occupants.map((o: { uid: string }) => o.uid);
+  for (const uid of expected.participantUids) expect(uids).toContain(uid);
+}

@@ -16,3 +16,5 @@ export const DUPLICATE_SETTLE_WINDOW_MS = 4000;
 /** call_unanswered: ring timeout is set short (CALL_RING_TIMEOUT_SECONDS) via initiateCall()'s 2nd arg, but the webhook wait still needs margin past that for CometChat's own processing — verified live (prod-eu, 2026-09-09): a 5s ring timeout delivered the webhook well within 15s. */
 export const CALL_RING_TIMEOUT_SECONDS = 5;
 export const CALL_UNANSWERED_TIMEOUT_MS = 20000;
+/** call_started/call_participant_joined/call_participant_left/call_ended/call_busy: real WebRTC session join is slower than plain signaling — verified live (prod-eu, 2026-09-09) comfortably within this window. */
+export const CALL_SESSION_TIMEOUT_MS = 30000;

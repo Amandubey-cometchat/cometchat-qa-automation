@@ -10,3 +10,5 @@
  */
 export const QA_USER_1 = 'cometchat-uid-1';
 export const QA_USER_2 = 'cometchat-uid-2';
+/** A third fixed user, needed only for scenarios involving 3 parties (e.g. call_busy: someone calling a receiver who's already on a call with QA_USER_1/QA_USER_2) — same CometChat Sample App seeding as above. */
+export const QA_USER_3 = 'cometchat-uid-3';

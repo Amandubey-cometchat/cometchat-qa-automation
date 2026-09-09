@@ -31,9 +31,19 @@ export function byUserConnectionStatus(uid: string, action: 'connected' | 'disco
   return (p) => p?.data?.user?.uid === uid && p?.data?.currentConnection?.action === action;
 }
 
-/** Calls webhooks correlate via sessionId (unique per call attempt), not message id — verified live 2026-09-09. */
+/** Calls signaling webhooks (initiated/unanswered/cancelled/rejected/busy) correlate via sessionId — verified live 2026-09-09. */
 export function byCallSessionId(sessionId: string): WebhookMatcher {
   return (p) => p?.data?.call?.data?.entities?.on?.entity?.sessionid === sessionId;
+}
+
+/** Calls media-session webhooks (started/participant_joined/participant_left/ended) use a flat payload shape, distinct from the signaling ones above — verified live 2026-09-09. */
+export function byCallMediaSessionId(sessionId: string): WebhookMatcher {
+  return (p) => p?.data?.sessionId === sessionId;
+}
+
+/** Narrows call_participant_joined/left to one specific occupant, alongside byCallMediaSessionId. */
+export function byCallOccupantUid(uid: string): WebhookMatcher {
+  return (p) => p?.data?.occupant?.uid === uid;
 }
 
 export function and(...matchers: WebhookMatcher[]): WebhookMatcher {

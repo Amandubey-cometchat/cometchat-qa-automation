@@ -1,46 +1,33 @@
 import { WebhookRegistryEntry } from './webhook.registry';
 
-// Confirmed live 2026-09-09 against prod-eu: the Calls & Meeting add-on is
-// enabled there (GET /calls on the real Calls REST API returned 200, empty
-// log — not an add-on-disabled error). Unconfirmed on prod-us/prod-in/
-// staging-us; environments below reflect only what's actually been verified.
-const VERIFIED_ENV: WebhookRegistryEntry['environments'] = ['prod-eu'];
+// Confirmed live 2026-09-09: all 9 Calls webhooks pass the real spec files
+// on all 3 prod apps (prod-eu, prod-us, prod-in — 9/9 each). Unconfirmed on
+// staging-us (Calls & Meeting add-on status not checked there).
+const ALL_PROD: WebhookRegistryEntry['environments'] = ['prod-eu', 'prod-us', 'prod-in'];
+const SIGNALING_IDS = ['call_initiated', 'call_unanswered', 'call_cancelled', 'call_rejected', 'call_busy'];
+const MEDIA_SESSION_IDS = ['call_started', 'call_participant_joined', 'call_participant_left', 'call_ended'];
 
-const MEDIA_SESSION_REASON =
-  'Requires actually joining the WebRTC call session via the separate @cometchat/calls-sdk-javascript package ' +
-  '(CometChatCalls.joinSession), not just Chat SDK signaling — confirmed live 2026-09-09: accepting a call at ' +
-  'the signaling level (CometChat.acceptCall) without joining the media session does not make the receiver ' +
-  '"busy" to a second incoming call, and does not fire call_started/participant events. Needs Playwright launched ' +
-  'with --use-fake-device-for-media-stream (no real camera/mic required, officially supported for this).';
+function entry(id: string, environments: WebhookRegistryEntry['environments'], trigger: string, expectedPayloadKeys: string[]): WebhookRegistryEntry {
+  return {
+    id,
+    category: 'CALLS',
+    environments,
+    trigger,
+    expectedEvent: id,
+    automationMethod: 'SDK',
+    expectedPayloadKeys,
+    status: 'AUTOMATED',
+    specFile: `src/tests/calls/${id.replace(/_/g, '-')}.spec.ts`,
+    testTitleMatch: `${id} webhook fires`,
+  };
+}
 
-const SIGNALING_IDS = ['call_initiated', 'call_unanswered', 'call_cancelled', 'call_rejected'];
-const MEDIA_SESSION_IDS = ['call_started', 'call_participant_joined', 'call_participant_left', 'call_ended', 'call_busy'];
+const SIGNALING_KEYS = ['data.call.sender', 'data.call.receiver', 'data.call.data.action', 'data.call.data.entities.on.entity.sessionid'];
+const MEDIA_SESSION_KEYS = ['data.sessionId'];
 
-const SIGNALING_ENTRIES: WebhookRegistryEntry[] = SIGNALING_IDS.map((id) => ({
-  id,
-  category: 'CALLS',
-  environments: VERIFIED_ENV,
-  trigger: 'Real Chat SDK call signaling session',
-  expectedEvent: id,
-  automationMethod: 'SDK',
-  expectedPayloadKeys: ['data.call.sender', 'data.call.receiver', 'data.call.data.action', 'data.call.data.entities.on.entity.sessionid'],
-  status: 'AUTOMATED',
-  specFile: `src/tests/calls/${id.replace(/_/g, '-')}.spec.ts`,
-  testTitleMatch: `${id} webhook fires`,
-}));
-
-const MEDIA_SESSION_ENTRIES: WebhookRegistryEntry[] = MEDIA_SESSION_IDS.map((id) => ({
-  id,
-  category: 'CALLS',
-  environments: [],
-  trigger: 'Real Calls SDK WebRTC session lifecycle action',
-  expectedEvent: id,
-  automationMethod: 'NONE',
-  expectedPayloadKeys: [],
-  status: 'BLOCKED',
-  specFile: 'src/tests/calls/calls.spec.ts',
-  testTitleMatch: `${id} (documented gap)`,
-  reason: MEDIA_SESSION_REASON,
-}));
-
-export const CALLS_REGISTRY: WebhookRegistryEntry[] = [...SIGNALING_ENTRIES, ...MEDIA_SESSION_ENTRIES];
+export const CALLS_REGISTRY: WebhookRegistryEntry[] = [
+  ...SIGNALING_IDS.map((id) => entry(id, ALL_PROD, 'Real Chat SDK call signaling session', SIGNALING_KEYS)),
+  ...MEDIA_SESSION_IDS.map((id) =>
+    entry(id, ALL_PROD, 'Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)', MEDIA_SESSION_KEYS)
+  ),
+];
