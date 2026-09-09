@@ -2,15 +2,15 @@
   "environments": {
     "prod-eu": {
       "environment": "prod-eu",
-      "generatedAt": "2026-09-09T08:23:59.976Z",
+      "generatedAt": "2026-09-09T13:52:24.872Z",
       "counts": {
         "Total": 61,
-        "PASSED": 4,
-        "FAILED": 0,
+        "PASSED": 35,
+        "FAILED": 1,
         "SKIPPED": 0,
-        "NOT_IMPLEMENTED": 9,
-        "BLOCKED": 22,
-        "OTHER": 26
+        "NOT_IMPLEMENTED": 8,
+        "BLOCKED": 17,
+        "OTHER": 0
       },
       "rows": [
         {
@@ -34,7 +34,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-created.spec.ts",
           "testTitleMatch": "group_created webhook fires with correct guid, name, type and owner",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -56,7 +56,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-updated.spec.ts",
           "testTitleMatch": "group_updated webhook fires with the new name applied",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -77,7 +77,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-deleted.spec.ts",
           "testTitleMatch": "group_deleted webhook fires for the deleted guid",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -100,7 +100,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-added.spec.ts",
           "testTitleMatch": "group_member_added webhook fires with correct member and actor",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -123,7 +123,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-kicked.spec.ts",
           "testTitleMatch": "group_member_kicked webhook fires with correct member and actor",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -147,7 +147,7 @@
           "specFile": "src/tests/group/group-member-banned.spec.ts",
           "testTitleMatch": "group_member_banned webhook fires with correct member and actor",
           "reason": "AUTOMATED, but expect this test to report as an *expected* failure: confirmed live CometChat bug — when Ban Member is called with onBehalfOf, data.members incorrectly contains the actor's UID instead of the banned target's. Reproduced outside this suite too, so not a test artifact.",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -171,7 +171,7 @@
           "specFile": "src/tests/group/group-member-unbanned.spec.ts",
           "testTitleMatch": "group_member_unbanned webhook fires with correct member and actor",
           "reason": "Same confirmed CometChat bug as group_member_banned above.",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -193,7 +193,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-scope-changed.spec.ts",
           "testTitleMatch": "group_member_scope_changed webhook fires with old and new scope",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -216,7 +216,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-owner-transferred.spec.ts",
           "testTitleMatch": "group_owner_transferred webhook fires with correct old and new owner",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -239,7 +239,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-joined.spec.ts",
           "testTitleMatch": "group_member_joined webhook fires when a user joins a public group themselves",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -261,7 +261,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-left.spec.ts",
           "testTitleMatch": "group_member_left webhook fires when a user leaves a group themselves",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -285,7 +285,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-sent.spec.ts",
           "testTitleMatch": "message_sent webhook fires when a text message is sent",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -307,7 +307,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-edited.spec.ts",
           "testTitleMatch": "message_edited webhook fires when a message is edited, with the new text",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -328,7 +328,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-deleted.spec.ts",
           "testTitleMatch": "message_deleted webhook fires when a message is deleted",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -351,7 +351,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-reaction-added.spec.ts",
           "testTitleMatch": "message_reaction_added webhook fires with the correct emoji, message and reactor",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -374,7 +374,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-reaction-removed.spec.ts",
           "testTitleMatch": "message_reaction_removed webhook fires with the correct emoji, message and reactor",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -396,7 +396,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/user-mentioned.spec.ts",
           "testTitleMatch": "user_mentioned webhook fires when a message mentions a user",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -421,7 +421,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-delivery-receipt.spec.ts",
           "testTitleMatch": "message_delivery_receipt webhook fires when a recipient client acknowledges delivery",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -446,7 +446,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-read-receipt.spec.ts",
           "testTitleMatch": "message_read_receipt webhook fires when a recipient client marks a message read",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -469,7 +469,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-delivered-to-all.spec.ts",
           "testTitleMatch": "message_delivered_to_all webhook fires once every group member has received the message",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -492,7 +492,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-read-by-all.spec.ts",
           "testTitleMatch": "message_read_by_all webhook fires once every group member has read the message",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -579,7 +579,9 @@
           "id": "call_initiated",
           "category": "CALLS",
           "environments": [
-            "prod-eu"
+            "prod-eu",
+            "prod-us",
+            "prod-in"
           ],
           "trigger": "Real Chat SDK call signaling session",
           "expectedEvent": "call_initiated",
@@ -600,7 +602,9 @@
           "id": "call_unanswered",
           "category": "CALLS",
           "environments": [
-            "prod-eu"
+            "prod-eu",
+            "prod-us",
+            "prod-in"
           ],
           "trigger": "Real Chat SDK call signaling session",
           "expectedEvent": "call_unanswered",
@@ -621,7 +625,9 @@
           "id": "call_cancelled",
           "category": "CALLS",
           "environments": [
-            "prod-eu"
+            "prod-eu",
+            "prod-us",
+            "prod-in"
           ],
           "trigger": "Real Chat SDK call signaling session",
           "expectedEvent": "call_cancelled",
@@ -642,7 +648,9 @@
           "id": "call_rejected",
           "category": "CALLS",
           "environments": [
-            "prod-eu"
+            "prod-eu",
+            "prod-us",
+            "prod-in"
           ],
           "trigger": "Real Chat SDK call signaling session",
           "expectedEvent": "call_rejected",
@@ -660,78 +668,106 @@
           "error": null
         },
         {
+          "id": "call_busy",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Chat SDK call signaling session",
+          "expectedEvent": "call_busy",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.call.sender",
+            "data.call.receiver",
+            "data.call.data.action",
+            "data.call.data.entities.on.entity.sessionid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-busy.spec.ts",
+          "testTitleMatch": "call_busy webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
           "id": "call_started",
           "category": "CALLS",
-          "environments": [],
-          "trigger": "Real Calls SDK WebRTC session lifecycle action",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
           "expectedEvent": "call_started",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/calls/calls.spec.ts",
-          "testTitleMatch": "call_started (documented gap)",
-          "reason": "Requires actually joining the WebRTC call session via the separate @cometchat/calls-sdk-javascript package (CometChatCalls.joinSession), not just Chat SDK signaling — confirmed live 2026-09-09: accepting a call at the signaling level (CometChat.acceptCall) without joining the media session does not make the receiver \"busy\" to a second incoming call, and does not fire call_started/participant events. Needs Playwright launched with --use-fake-device-for-media-stream (no real camera/mic required, officially supported for this).",
-          "runStatus": "BLOCKED",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-started.spec.ts",
+          "testTitleMatch": "call_started webhook fires",
+          "runStatus": "PASSED",
           "error": null
         },
         {
           "id": "call_participant_joined",
           "category": "CALLS",
-          "environments": [],
-          "trigger": "Real Calls SDK WebRTC session lifecycle action",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
           "expectedEvent": "call_participant_joined",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/calls/calls.spec.ts",
-          "testTitleMatch": "call_participant_joined (documented gap)",
-          "reason": "Requires actually joining the WebRTC call session via the separate @cometchat/calls-sdk-javascript package (CometChatCalls.joinSession), not just Chat SDK signaling — confirmed live 2026-09-09: accepting a call at the signaling level (CometChat.acceptCall) without joining the media session does not make the receiver \"busy\" to a second incoming call, and does not fire call_started/participant events. Needs Playwright launched with --use-fake-device-for-media-stream (no real camera/mic required, officially supported for this).",
-          "runStatus": "BLOCKED",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-participant-joined.spec.ts",
+          "testTitleMatch": "call_participant_joined webhook fires",
+          "runStatus": "PASSED",
           "error": null
         },
         {
           "id": "call_participant_left",
           "category": "CALLS",
-          "environments": [],
-          "trigger": "Real Calls SDK WebRTC session lifecycle action",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
           "expectedEvent": "call_participant_left",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/calls/calls.spec.ts",
-          "testTitleMatch": "call_participant_left (documented gap)",
-          "reason": "Requires actually joining the WebRTC call session via the separate @cometchat/calls-sdk-javascript package (CometChatCalls.joinSession), not just Chat SDK signaling — confirmed live 2026-09-09: accepting a call at the signaling level (CometChat.acceptCall) without joining the media session does not make the receiver \"busy\" to a second incoming call, and does not fire call_started/participant events. Needs Playwright launched with --use-fake-device-for-media-stream (no real camera/mic required, officially supported for this).",
-          "runStatus": "BLOCKED",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-participant-left.spec.ts",
+          "testTitleMatch": "call_participant_left webhook fires",
+          "runStatus": "PASSED",
           "error": null
         },
         {
           "id": "call_ended",
           "category": "CALLS",
-          "environments": [],
-          "trigger": "Real Calls SDK WebRTC session lifecycle action",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
           "expectedEvent": "call_ended",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/calls/calls.spec.ts",
-          "testTitleMatch": "call_ended (documented gap)",
-          "reason": "Requires actually joining the WebRTC call session via the separate @cometchat/calls-sdk-javascript package (CometChatCalls.joinSession), not just Chat SDK signaling — confirmed live 2026-09-09: accepting a call at the signaling level (CometChat.acceptCall) without joining the media session does not make the receiver \"busy\" to a second incoming call, and does not fire call_started/participant events. Needs Playwright launched with --use-fake-device-for-media-stream (no real camera/mic required, officially supported for this).",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "call_busy",
-          "category": "CALLS",
-          "environments": [],
-          "trigger": "Real Calls SDK WebRTC session lifecycle action",
-          "expectedEvent": "call_busy",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/calls/calls.spec.ts",
-          "testTitleMatch": "call_busy (documented gap)",
-          "reason": "Requires actually joining the WebRTC call session via the separate @cometchat/calls-sdk-javascript package (CometChatCalls.joinSession), not just Chat SDK signaling — confirmed live 2026-09-09: accepting a call at the signaling level (CometChat.acceptCall) without joining the media session does not make the receiver \"busy\" to a second incoming call, and does not fire call_started/participant events. Needs Playwright launched with --use-fake-device-for-media-stream (no real camera/mic required, officially supported for this).",
-          "runStatus": "BLOCKED",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-ended.spec.ts",
+          "testTitleMatch": "call_ended webhook fires",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -993,7 +1029,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/user/user-blocked.spec.ts",
           "testTitleMatch": "user_blocked webhook fires with the correct blocker and blocked user",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1015,7 +1051,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/user/user-unblocked.spec.ts",
           "testTitleMatch": "user_unblocked webhook fires with the correct unblocker and unblocked user",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1038,7 +1074,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/user/user-connection-status-changed.spec.ts",
           "testTitleMatch": "user_connection_status_changed webhook fires when a client disconnects",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1062,7 +1098,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/moderation/moderation-engine-blocked.spec.ts",
           "testTitleMatch": "moderation_engine_blocked webhook fires when a message matches the Profanity filter",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1084,7 +1120,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/moderation/moderation-engine-approved.spec.ts",
           "testTitleMatch": "moderation_engine_approved webhook fires when a clean message clears moderation",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1131,21 +1167,22 @@
           "id": "before_message",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-eu"
           ],
-          "trigger": "Send a text message (legacy webhook system) — fires BEFORE the message is persisted",
+          "trigger": "Send a text message (legacy webhook system) — fires synchronously BEFORE the message is persisted",
           "expectedEvent": "before_message",
           "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "before_message (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window. Also architecturally different from every other webhook in this registry: it is synchronous — CometChat calls the receiver and uses the response (injected into the message's metadata, or able to drop the message entirely depending on response shape) rather than firing-and-forgetting. The exact response contract that drops vs. approves a message is not precisely documented and has not been live-verified. Needs a careful, isolated probe (QA users only, a watched run) before any permanent implementation — not safe to guess at given it can affect real message delivery on these apps.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
+          "expectedPayloadKeys": [
+            "data.sender",
+            "data.receiver",
+            "data.data.text",
+            "data.data.entities.sender.entity.uid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/before-message.spec.ts",
+          "testTitleMatch": "before_message webhook fires",
+          "runStatus": "FAILED",
+          "error": "Error: Timed out waiting for webhook event \"before_message\" after 10000ms.\nEvents actually received in this window:\n  - moderation_engine_approved at 2026-09-09T13:51:20.598Z (event id: 7a2e8862-49be-4132-92af-5fe09b3a16c4)\n  - message_sent at 2026-09-09T13:51:20.779Z (event id: 5fb2f38b-40e7-45d8-aecf-ff5fd14fd375)"
         },
         {
           "id": "message_delivery_receipt_legacy",
@@ -2396,15 +2433,15 @@
     },
     "prod-in": {
       "environment": "prod-in",
-      "generatedAt": "2026-09-09T10:24:54.591Z",
+      "generatedAt": "2026-09-09T14:19:05.253Z",
       "counts": {
         "Total": 61,
-        "PASSED": 9,
+        "PASSED": 1,
         "FAILED": 0,
         "SKIPPED": 0,
-        "NOT_IMPLEMENTED": 9,
-        "BLOCKED": 17,
-        "OTHER": 26
+        "NOT_IMPLEMENTED": 8,
+        "BLOCKED": 13,
+        "OTHER": 39
       },
       "rows": [
         {
@@ -2989,7 +3026,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-initiated.spec.ts",
           "testTitleMatch": "call_initiated webhook fires",
-          "runStatus": "PASSED",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
@@ -3012,7 +3049,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-unanswered.spec.ts",
           "testTitleMatch": "call_unanswered webhook fires",
-          "runStatus": "PASSED",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
@@ -3035,7 +3072,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-cancelled.spec.ts",
           "testTitleMatch": "call_cancelled webhook fires",
-          "runStatus": "PASSED",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
@@ -3058,7 +3095,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-rejected.spec.ts",
           "testTitleMatch": "call_rejected webhook fires",
-          "runStatus": "PASSED",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
@@ -3081,7 +3118,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-busy.spec.ts",
           "testTitleMatch": "call_busy webhook fires",
-          "runStatus": "PASSED",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
@@ -3101,7 +3138,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-started.spec.ts",
           "testTitleMatch": "call_started webhook fires",
-          "runStatus": "PASSED",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
@@ -3121,7 +3158,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-participant-joined.spec.ts",
           "testTitleMatch": "call_participant_joined webhook fires",
-          "runStatus": "PASSED",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
@@ -3141,7 +3178,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-participant-left.spec.ts",
           "testTitleMatch": "call_participant_left webhook fires",
-          "runStatus": "PASSED",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
@@ -3161,81 +3198,101 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-ended.spec.ts",
           "testTitleMatch": "call_ended webhook fires",
-          "runStatus": "PASSED",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "meeting_started",
           "category": "MEETINGS",
-          "environments": [],
-          "trigger": "Real Meetings SDK session lifecycle action",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
           "expectedEvent": "meeting_started",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/meetings/meetings.spec.ts",
-          "testTitleMatch": "meeting_started (documented gap)",
-          "reason": "Same situation as Calls (see calls.registry.ts): no Calls & Meeting SDK integration exists in this project, and the add-on's availability on any target app is unconfirmed.",
-          "runStatus": "BLOCKED",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/meetings/meeting-started.spec.ts",
+          "testTitleMatch": "meeting_started webhook fires",
+          "runStatus": "PASSED",
           "error": null
         },
         {
           "id": "meeting_participant_joined",
           "category": "MEETINGS",
-          "environments": [],
-          "trigger": "Real Meetings SDK session lifecycle action",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
           "expectedEvent": "meeting_participant_joined",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/meetings/meetings.spec.ts",
-          "testTitleMatch": "meeting_participant_joined (documented gap)",
-          "reason": "Same situation as Calls (see calls.registry.ts): no Calls & Meeting SDK integration exists in this project, and the add-on's availability on any target app is unconfirmed.",
-          "runStatus": "BLOCKED",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/meetings/meeting-participant-joined.spec.ts",
+          "testTitleMatch": "meeting_participant_joined webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "meeting_participant_left",
           "category": "MEETINGS",
-          "environments": [],
-          "trigger": "Real Meetings SDK session lifecycle action",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
           "expectedEvent": "meeting_participant_left",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/meetings/meetings.spec.ts",
-          "testTitleMatch": "meeting_participant_left (documented gap)",
-          "reason": "Same situation as Calls (see calls.registry.ts): no Calls & Meeting SDK integration exists in this project, and the add-on's availability on any target app is unconfirmed.",
-          "runStatus": "BLOCKED",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/meetings/meeting-participant-left.spec.ts",
+          "testTitleMatch": "meeting_participant_left webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "meeting_ended",
           "category": "MEETINGS",
-          "environments": [],
-          "trigger": "Real Meetings SDK session lifecycle action",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
           "expectedEvent": "meeting_ended",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/meetings/meetings.spec.ts",
-          "testTitleMatch": "meeting_ended (documented gap)",
-          "reason": "Same situation as Calls (see calls.registry.ts): no Calls & Meeting SDK integration exists in this project, and the add-on's availability on any target app is unconfirmed.",
-          "runStatus": "BLOCKED",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/meetings/meeting-ended.spec.ts",
+          "testTitleMatch": "meeting_ended webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "recording_generated",
           "category": "MEETINGS",
           "environments": [],
-          "trigger": "Real Meetings SDK session lifecycle action",
+          "trigger": "Recording/transcription generated for a Calls or Meetings session",
           "expectedEvent": "recording_generated",
           "automationMethod": "NONE",
           "expectedPayloadKeys": [],
           "status": "BLOCKED",
           "specFile": "src/tests/meetings/meetings.spec.ts",
           "testTitleMatch": "recording_generated (documented gap)",
-          "reason": "Same situation as Calls (see calls.registry.ts): no Calls & Meeting SDK integration exists in this project, and the add-on's availability on any target app is unconfirmed.",
+          "reason": "Requires recording actually enabled for the session (autoStartRecording, or an app-level recording feature) — not yet confirmed whether that's on for any of the 4 apps, and this is async (real processing delay after the session ends before the recording is ready), unlike every other Meetings/Calls trigger.",
           "runStatus": "BLOCKED",
           "error": null
         },
@@ -3243,14 +3300,14 @@
           "id": "transcription_generated",
           "category": "MEETINGS",
           "environments": [],
-          "trigger": "Real Meetings SDK session lifecycle action",
+          "trigger": "Recording/transcription generated for a Calls or Meetings session",
           "expectedEvent": "transcription_generated",
           "automationMethod": "NONE",
           "expectedPayloadKeys": [],
           "status": "BLOCKED",
           "specFile": "src/tests/meetings/meetings.spec.ts",
           "testTitleMatch": "transcription_generated (documented gap)",
-          "reason": "Same situation as Calls (see calls.registry.ts): no Calls & Meeting SDK integration exists in this project, and the add-on's availability on any target app is unconfirmed.",
+          "reason": "Voice transcription is a separate paid extension (Rev.ai-backed), not a built-in Calls/Meetings SDK feature — needs its own Rev.ai account and Dashboard configuration, which is not confirmed to exist on any of the 4 apps. Not something more research or live probing from this project can resolve on its own.",
           "runStatus": "BLOCKED",
           "error": null
         },
@@ -3561,20 +3618,21 @@
           "id": "before_message",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-eu"
           ],
-          "trigger": "Send a text message (legacy webhook system) — fires BEFORE the message is persisted",
+          "trigger": "Send a text message (legacy webhook system) — fires synchronously BEFORE the message is persisted",
           "expectedEvent": "before_message",
           "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "before_message (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window. Also architecturally different from every other webhook in this registry: it is synchronous — CometChat calls the receiver and uses the response (injected into the message's metadata, or able to drop the message entirely depending on response shape) rather than firing-and-forgetting. The exact response contract that drops vs. approves a message is not precisely documented and has not been live-verified. Needs a careful, isolated probe (QA users only, a watched run) before any permanent implementation — not safe to guess at given it can affect real message delivery on these apps.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.sender",
+            "data.receiver",
+            "data.data.text",
+            "data.data.entities.sender.entity.uid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/before-message.spec.ts",
+          "testTitleMatch": "before_message webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
