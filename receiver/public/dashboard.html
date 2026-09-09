@@ -525,8 +525,12 @@
 
     sidebarEl.innerHTML = items
       .map((it) => {
-        const color = CATEGORY_COLORS[it.key] || 'var(--accent)';
         const pct = it.total ? Math.round((100 * it.fired) / it.total) : it.key === '' ? Math.round((100 * it.fired) / (grandTotal || 1)) : 0;
+        // Fully covered categories turn green (matching the pass-rate
+        // ring's own 100% = --ok convention) instead of their normal
+        // category color — a clear "done" signal at a glance.
+        const isComplete = pct === 100 && (it.total || (it.key === '' && grandTotal));
+        const color = isComplete ? 'var(--ok)' : CATEGORY_COLORS[it.key] || 'var(--accent)';
         return `
         <button class="sidebar-item ${selectedCategory === it.key ? 'active' : ''}" data-cat="${it.key}">
           <div class="sidebar-item-row">
