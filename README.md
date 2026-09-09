@@ -295,37 +295,11 @@ authoritative, per-webhook version of this:
 | `moderation_manual_approved` | Dashboard-only human action (an admin manually approving flagged content) — no REST/SDK equivalent exists | `src/registry/moderation.registry.ts` |
 | `after_message`, `message_delivery_receipt`/`message_read_receipt`/`after_connection_status_changed` (LEGACY) | Each still needs its own live capture the same way `before_message` got one — see "Legacy webhooks" below for why these can't just be run like everything else | `src/registry/legacy.registry.ts` |
 
-## UI-driven testing
-
-`src/clients/sample-app.client.ts` drives CometChat's own official React
-Sample App via Playwright — a real, visible browser clicking through a real
-chat UI (typing into the composer, hitting Send), instead of a REST call or
-a raw SDK method call. Login flow and selectors come directly from
-CometChat's own E2E suite that ships in that repo, not guesswork.
-
-**Setup** (not part of this repo — cloned locally, gitignored):
-
-```bash
-git clone https://github.com/cometchat/cometchat-sample-app-react.git sample-app
-cd sample-app/sample-app
-npm install
-npm run dev   # dev server — note the port it picks (falls back if 3005 is taken)
-```
-
-Needs `COMETCHAT_AUTH_KEY` set in `.env.<APP_ENV>` — a client-side (Auth
-Only scope) credential from the Dashboard's Credentials panel, distinct
-from `COMETCHAT_REST_API_KEY` and never sent to the REST API. If the dev
-server isn't on `localhost:3006`, set `SAMPLE_APP_URL` to match.
-
-**Known finding**: `message_sent` does not fire for messages sent through
-the SDK's real-time path at all (confirmed live — true for the Sample App
-*and* a raw `CometChat.sendMessage()` call, so it's not UI-specific) —
-only for REST-created messages, which is how every message in this
-project has been sent until now. This isn't fixable from here; it means
-UI-driven testing can't add new coverage for `message_sent` itself, but
-remains useful for triggers that only fire from a live connected client
-(moderation, receipts, connection status) and for visually demoing the
-suite.
+**Real platform finding, not a gap in this project**: `message_sent` does
+not fire at all for messages sent through the SDK's real-time path —
+confirmed live via both a UIKit send and a raw `CometChat.sendMessage()`
+call. Only REST-created messages fire it, which is why every message in
+this suite is sent via REST (`src/clients/messages.client.ts`), never SDK.
 
 ## Legacy webhooks
 
