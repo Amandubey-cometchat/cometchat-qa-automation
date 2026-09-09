@@ -11,6 +11,10 @@
     "test:prod:eu": "APP_ENV=prod-eu CONFIRM_PROD=yes bash -c 'tsx scripts/open-dashboard.ts; tsx scripts/clear-history.ts; playwright test; code=$?; tsx scripts/upload-test-results.ts; tsx scripts/generate-coverage.ts; exit $code'",
     "test:prod:us": "APP_ENV=prod-us CONFIRM_PROD=yes bash -c 'tsx scripts/open-dashboard.ts; tsx scripts/clear-history.ts; playwright test; code=$?; tsx scripts/upload-test-results.ts; tsx scripts/generate-coverage.ts; exit $code'",
     "test:prod:in": "APP_ENV=prod-in CONFIRM_PROD=yes bash -c 'tsx scripts/open-dashboard.ts; tsx scripts/clear-history.ts; playwright test; code=$?; tsx scripts/upload-test-results.ts; tsx scripts/generate-coverage.ts; exit $code'",
+    "test:legacy:staging": "APP_ENV=staging-us tsx scripts/test-legacy.ts",
+    "test:legacy:prod:eu": "APP_ENV=prod-eu CONFIRM_PROD=yes tsx scripts/test-legacy.ts",
+    "test:legacy:prod:us": "APP_ENV=prod-us CONFIRM_PROD=yes tsx scripts/test-legacy.ts",
+    "test:legacy:prod:in": "APP_ENV=prod-in CONFIRM_PROD=yes tsx scripts/test-legacy.ts",
     "coverage": "tsx scripts/generate-coverage.ts",
     "typecheck": "tsc --noEmit"
   },

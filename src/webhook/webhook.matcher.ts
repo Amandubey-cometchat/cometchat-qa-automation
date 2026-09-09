@@ -46,6 +46,11 @@ export function byCallOccupantUid(uid: string): WebhookMatcher {
   return (p) => p?.data?.occupant?.uid === uid;
 }
 
+/** Legacy webhooks (before_message specifically) fire before the message is persisted — no id exists yet to correlate by, so match on the unique text instead. Verified live 2026-09-09. */
+export function byLegacyMessageText(text: string): WebhookMatcher {
+  return (p) => p?.data?.data?.text === text;
+}
+
 export function and(...matchers: WebhookMatcher[]): WebhookMatcher {
   return (p) => matchers.every((m) => m(p));
 }

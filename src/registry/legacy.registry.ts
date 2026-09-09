@@ -9,8 +9,11 @@ const ALL_ENVS: AppEnvName[] = ['staging-us', 'prod-us', 'prod-eu', 'prod-in'];
 // "Enter webhook details" legacy webhook form) and cross-checked against
 // CometChat's legacy webhooks docs: a given app can only have ONE webhook
 // system active at a time — configuring legacy replaces the modern webhook
-// config this project's 26 automated tests depend on, not adds to it. None
-// of these are automated yet; see each entry's reason for why.
+// config this project's other automated tests depend on, not adds to it.
+// Only runnable via scripts/test-legacy.ts (see its header comment for the
+// safety design), never as part of the regular suite. before_message is
+// automated (live-verified 2026-09-09, prod-eu); the rest still need their
+// own live capture — see each entry's reason for why.
 const MUTUAL_EXCLUSIVITY_REASON =
   'Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/' +
   'prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this ' +
@@ -34,22 +37,14 @@ export const LEGACY_REGISTRY: WebhookRegistryEntry[] = [
   {
     id: 'before_message',
     category: 'LEGACY',
-    environments: ALL_ENVS,
-    trigger: 'Send a text message (legacy webhook system) — fires BEFORE the message is persisted',
+    environments: ['prod-eu'],
+    trigger: 'Send a text message (legacy webhook system) — fires synchronously BEFORE the message is persisted',
     expectedEvent: 'before_message',
     automationMethod: 'REST',
-    expectedPayloadKeys: [],
-    status: 'NOT_IMPLEMENTED',
-    specFile: 'src/tests/legacy/legacy.spec.ts',
-    testTitleMatch: 'before_message (documented gap)',
-    reason:
-      MUTUAL_EXCLUSIVITY_REASON +
-      ' Also architecturally different from every other webhook in this registry: it is synchronous — CometChat ' +
-      "calls the receiver and uses the response (injected into the message's metadata, or able to drop the " +
-      'message entirely depending on response shape) rather than firing-and-forgetting. The exact response ' +
-      'contract that drops vs. approves a message is not precisely documented and has not been live-verified. ' +
-      'Needs a careful, isolated probe (QA users only, a watched run) before any permanent implementation — not ' +
-      'safe to guess at given it can affect real message delivery on these apps.',
+    expectedPayloadKeys: ['data.sender', 'data.receiver', 'data.data.text', 'data.data.entities.sender.entity.uid'],
+    status: 'AUTOMATED',
+    specFile: 'src/tests/legacy/before-message.spec.ts',
+    testTitleMatch: 'before_message webhook fires',
   },
   {
     id: 'message_delivery_receipt_legacy',
