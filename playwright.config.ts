@@ -20,8 +20,21 @@ const jsonReportDir = path.join(__dirname, 'reports', 'json');
 fs.mkdirSync(jsonReportDir, { recursive: true });
 fs.writeFileSync(path.join(jsonReportDir, '.run-env.json'), JSON.stringify({ APP_ENV: appEnv, appId, region, writtenAt: Date.now() }));
 
+// Real (non-gap) Legacy spec files assume the app's webhook config is
+// manually switched to Legacy mode in the Dashboard — never true during a
+// regular test run, where the app is expected to be in Modern mode (every
+// other automated test depends on that). Without this, they'd show up as
+// spurious "NOT RECEIVED?" failures in every npm run test:* run, since
+// Legacy mode genuinely isn't active then. Excluded by default; only
+// scripts/test-legacy.ts runs them, by setting RUN_LEGACY=1 to lift this.
+// legacy.spec.ts (the registry-driven gap file) is NOT in this list — it's
+// pure test.skip() calls with no live dependency, safe in every run, same
+// as every other category's gap file.
+const REAL_LEGACY_SPECS = ['**/tests/legacy/before-message.spec.ts'];
+
 export default defineConfig({
   testDir: './src/tests',
+  testIgnore: process.env.RUN_LEGACY === '1' ? undefined : REAL_LEGACY_SPECS,
   timeout: 30000,
   // Per-test failure artifacts (error-context.md, traces, screenshots) —
   // Playwright's default is a bare top-level test-results/, which would sit

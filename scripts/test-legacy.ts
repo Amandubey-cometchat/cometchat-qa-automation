@@ -116,7 +116,10 @@ async function canaryCheck(expectMode: 'legacy' | 'modern'): Promise<boolean> {
     console.log('\nRunning the Legacy test suite...\n');
     let testsFailed = false;
     try {
-      execSync('npx playwright test src/tests/legacy/', { stdio: 'inherit' });
+      // RUN_LEGACY=1 lifts playwright.config.ts's default exclusion of real
+      // (non-gap) Legacy spec files — see that file's comment for why they
+      // don't run in the regular suite.
+      execSync('npx playwright test src/tests/legacy/', { stdio: 'inherit', env: { ...process.env, RUN_LEGACY: '1' } });
     } catch {
       testsFailed = true;
     }
