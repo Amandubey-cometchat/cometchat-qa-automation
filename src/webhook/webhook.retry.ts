@@ -22,11 +22,22 @@ export async function watchForDuplicates(
   settleMs: number = DUPLICATE_SETTLE_WINDOW_MS
 ): Promise<DuplicateCheckResult> {
   const deadline = Date.now() + settleMs;
-  let matches: StoredWebhookEvent[] = [];
+  // Accumulate distinct events (by id) across every poll, not just the last
+  // one — a single poll returning fewer/zero results (a transient blip, or
+  // the receiver's in-memory store resetting mid-window, e.g. a Render
+  // free-tier restart) used to silently discard everything seen in earlier,
+  // successful polls, producing a false "0 matches" even when the calling
+  // expectWebhookEvent() had already confirmed the event was really there.
+  // Verified live 2026-09-09: this is what caused a genuinely-fired
+  // user_blocked webhook to fail with "got 0 (none matched)".
+  const seen = new Map<string, StoredWebhookEvent>();
   while (Date.now() < deadline) {
     const events = await fetchEvents(trigger);
-    matches = events.filter((e) => matcher(e.payload));
+    for (const e of events.filter((e) => matcher(e.payload))) {
+      seen.set(e.id, e);
+    }
     await sleep(500);
   }
+  const matches = [...seen.values()];
   return { matches, isDuplicate: matches.length > 1 };
 }
