@@ -51,6 +51,21 @@ export function byLegacyMessageText(text: string): WebhookMatcher {
   return (p) => p?.data?.data?.text === text;
 }
 
+/** Campaign webhooks (after_notification_created) correlate via notificationId. Verified live 2026-09-10. */
+export function byNotificationId(notificationId: string): WebhookMatcher {
+  return (p) => p?.data?.notificationId === notificationId;
+}
+
+/** Campaign feed-item webhooks (after_feed_item_sent/delivered/read) correlate via the feed item's own id — distinct from notificationId, which stays the same across all of a notification's per-recipient feed items. Verified live 2026-09-10. */
+export function byFeedItemId(feedItemId: string): WebhookMatcher {
+  return (p) => p?.data?.id === feedItemId;
+}
+
+/** Campaign webhooks (after_campaign_completed/failed) correlate via campaignId. Verified live 2026-09-10. */
+export function byCampaignId(campaignId: string): WebhookMatcher {
+  return (p) => p?.data?.campaignId === campaignId;
+}
+
 export function and(...matchers: WebhookMatcher[]): WebhookMatcher {
   return (p) => matchers.every((m) => m(p));
 }
