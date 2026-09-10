@@ -149,6 +149,21 @@ const DELAYED_GRACE_WINDOW_MS = 30000;
 
 const TIMED_OUT_RE = /^Error: Timed out waiting for webhook event "([^"]+)"/;
 
+// trigger name -> human Dashboard tab label ("Moderation", "Call & Meeting",
+// etc.), generated from the registry by scripts/generate-trigger-categories.ts.
+// Lets a "timed out waiting for X" failure surface an actionable hint
+// ("check the Dashboard's <label> webhook trigger") instead of a generic
+// one — see flattenSpecs below. Read directly here (not just served as a
+// static asset) since index.js needs it parsed.
+let triggerToDisplayLabel = {};
+try {
+  triggerToDisplayLabel = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'public', 'trigger-categories.json'), 'utf-8')
+  ).triggerToDisplayLabel || {};
+} catch {
+  triggerToDisplayLabel = {}; // nice-to-have — failures still show fine without a hint
+}
+
 function flattenSpecs(suite, fileTitle, out, historySnapshot) {
   for (const spec of suite.specs || []) {
     const test = spec.tests && spec.tests[0];
@@ -207,11 +222,22 @@ function flattenSpecs(suite, fileTitle, out, historySnapshot) {
     // rows — a "delayed" one already has a more specific explanation.
     const likelyNotReceived = category === 'failed' && !!timedOutMatch;
 
+    // Turn "not received" into an actionable hint naming the specific
+    // Dashboard tab to check, e.g. "Moderation" for moderation_engine_approved
+    // — instead of leaving the user to guess which of the 7 webhook trigger
+    // tabs might be the disabled one. Falls back to null (dashboard.html
+    // shows its existing generic wording) if the trigger isn't in the map,
+    // which only happens if trigger-categories.json is stale.
+    const notReceivedTrigger = likelyNotReceived ? timedOutMatch[1] : null;
+    const notReceivedLabel = notReceivedTrigger ? triggerToDisplayLabel[notReceivedTrigger] || null : null;
+
     out.push({
       file: fileTitle,
       title: spec.title,
       category,
       likelyNotReceived,
+      notReceivedTrigger,
+      notReceivedLabel,
       delayedArrivalMs,
       status: result.status,
       duration: result.duration,

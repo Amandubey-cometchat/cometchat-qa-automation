@@ -336,6 +336,17 @@
   }
   .reason-box.error { color: #ff9d9d; }
   .reason-box.skip { color: var(--muted); }
+  .hint-box {
+    margin: 14px 14px 0;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: rgba(108,140,255,0.1);
+    border: 1px solid rgba(108,140,255,0.3);
+    color: var(--accent);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .hint-box b { color: var(--text); }
   .pass-rate-banner {
     max-width: 980px;
     margin: 14px auto 0;
@@ -965,10 +976,17 @@
         // Not a certain diagnosis (no Management API access to check the
         // actual Dashboard trigger state) — just distinguishes "nothing
         // arrived at all" from "something arrived but was wrong", since
-        // those currently look identical under one FAILED badge.
+        // those currently look identical under one FAILED badge. When the
+        // registry can name the specific Dashboard tab (t.notReceivedLabel,
+        // from receiver/public/trigger-categories.json), the tooltip and
+        // the hint box below name it directly instead of speaking generically.
         const notReceivedBadge = t.likelyNotReceived
-          ? '<span class="test-badge not-received" title="No webhook arrived at all before the timeout — could be a disabled trigger in the Dashboard, or a real regression. Not certain either way without Management API access.">not received?</span>'
+          ? `<span class="test-badge not-received" title="No webhook arrived at all before the timeout — ${t.notReceivedLabel ? `check the Dashboard's ${escapeHtml(t.notReceivedLabel)} webhook trigger` : 'could be a disabled trigger in the Dashboard'}, or a real regression. Not certain either way without Management API access.">not received?</span>`
           : '';
+        const hintBox =
+          t.likelyNotReceived && t.notReceivedLabel
+            ? `<div class="hint-box">Check the Dashboard's <b>${escapeHtml(t.notReceivedLabel)}</b> webhook trigger for <b>"${escapeHtml(t.notReceivedTrigger)}"</b> is switched on — no matching event arrived before the timeout below. If it's already on, this is likely a real regression.</div>`
+            : '';
         // The webhook arrived, just after this test had already given up
         // waiting — see DELAYED_GRACE_WINDOW_MS in receiver/index.js. Not a
         // real failure; more a sign the timeout budget for this trigger
@@ -991,6 +1009,7 @@
             <span class="time">${fmtDuration(t.duration)}</span>
           </div>
           ${canExpand ? `<div class="event-body">
+            ${hintBox}
             <pre class="reason-box ${reasonClass}">${formatReason(reason)}</pre>
             <div class="copy-row">
               <button onclick='window.__copy(${JSON.stringify(reason)})'>Copy</button>

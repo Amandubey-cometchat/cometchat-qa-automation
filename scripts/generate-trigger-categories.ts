@@ -29,12 +29,33 @@
  *     identifiable in a live event — the "registered" count and the
  *     "can this live event be unambiguously attributed" question are
  *     answered separately on purpose.
+ *
+ *   triggerToDisplayLabel: trigger name -> the human-readable Dashboard tab
+ *     name it lives under (matching dashboard.html's own DISPLAY_CATEGORIES
+ *     labels, which mirror the CometChat Dashboard's real webhook trigger
+ *     tabs: Group / Call & Meeting / Message / Campaign / User / Moderation
+ *     / Legacy). Used by the receiver to turn a "timed out waiting for
+ *     webhook X" test failure into an actionable hint — "check the
+ *     Dashboard's <label> webhook trigger for X" — instead of a generic
+ *     "could be disabled" message. Same CALLS+MEETINGS -> "Call & Meeting"
+ *     merge as the frontend, since that's a display-only grouping choice.
  */
 import fs from 'fs';
 import path from 'path';
 import { REGISTRY } from '../src/registry/webhook.registry';
 
 const OUT_FILE = path.join(__dirname, '..', 'receiver', 'public', 'trigger-categories.json');
+
+const DISPLAY_LABEL: Record<string, string> = {
+  GROUP: 'Group',
+  CALLS: 'Call & Meeting',
+  MEETINGS: 'Call & Meeting',
+  MESSAGE: 'Message',
+  CAMPAIGN: 'Campaign',
+  USER: 'User',
+  MODERATION: 'Moderation',
+  LEGACY: 'Legacy',
+};
 
 const triggerToCategory: Record<string, string> = {};
 for (const entry of REGISTRY) {
@@ -48,7 +69,12 @@ for (const entry of REGISTRY) {
   categoryTotals[entry.category] = (categoryTotals[entry.category] || 0) + 1;
 }
 
-const output = { triggerToCategory, categoryTotals };
+const triggerToDisplayLabel: Record<string, string> = {};
+for (const [trigger, category] of Object.entries(triggerToCategory)) {
+  triggerToDisplayLabel[trigger] = DISPLAY_LABEL[category] || category;
+}
+
+const output = { triggerToCategory, categoryTotals, triggerToDisplayLabel };
 fs.writeFileSync(OUT_FILE, JSON.stringify(output, null, 2) + '\n');
 console.log(
   `Wrote ${Object.keys(triggerToCategory).length} trigger->category mappings and ${Object.keys(categoryTotals).length} ` +
