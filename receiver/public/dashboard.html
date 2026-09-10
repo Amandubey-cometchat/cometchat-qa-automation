@@ -304,6 +304,7 @@
   .dot2.skipped { background: #8b91a7; }
   .dot2.expected-fail { background: var(--warn); }
   .dot2.blocked { background: #7a5cff; }
+  .dot2.delayed { background: #22b8cf; }
   .run-meta { color: var(--muted); font-size: 12px; margin-left: auto; }
   .test-row { display: flex; align-items: center; gap: 10px; }
   .test-badge {
@@ -320,6 +321,7 @@
   .test-badge.skipped { background: rgba(139,145,167,0.2); color: var(--muted); }
   .test-badge.expected-fail { background: rgba(226,163,61,0.18); color: var(--warn); }
   .test-badge.blocked { background: rgba(122,92,255,0.18); color: #a794ff; }
+  .test-badge.delayed { background: rgba(34,184,207,0.15); color: #22b8cf; }
   .test-badge.not-received { background: rgba(108,140,255,0.15); color: var(--accent); cursor: help; }
   .test-file { color: var(--muted); font-size: 11px; font-family: var(--mono); white-space: nowrap; }
   .test-title { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -407,6 +409,7 @@
       <div class="stat" data-cat="passed"><span class="dot2 passed"></span><span class="n" id="statPassedN">0</span><span class="l">passed</span></div>
       <div class="stat" data-cat="failed"><span class="dot2 failed"></span><span class="n" id="statFailedN">0</span><span class="l">failed</span></div>
       <div class="stat" data-cat="expected-fail"><span class="dot2 expected-fail"></span><span class="n" id="statExpFailN">0</span><span class="l">known issue</span></div>
+      <div class="stat" data-cat="delayed"><span class="dot2 delayed"></span><span class="n" id="statDelayedN">0</span><span class="l">delayed</span></div>
       <div class="stat" data-cat="skipped"><span class="dot2 skipped"></span><span class="n" id="statSkippedN">0</span><span class="l">skipped</span></div>
       <div class="stat" data-cat="blocked"><span class="dot2 blocked"></span><span class="n" id="statBlockedN">0</span><span class="l">blocked</span></div>
       <span class="run-meta" id="runMeta"></span>
@@ -891,7 +894,7 @@
   }
 
   function categoryLabel(cat) {
-    return { passed: 'passed', failed: 'failed', skipped: 'skipped', 'expected-fail': 'known issue', blocked: 'blocked' }[cat] || cat;
+    return { passed: 'passed', failed: 'failed', skipped: 'skipped', 'expected-fail': 'known issue', blocked: 'blocked', delayed: 'delayed' }[cat] || cat;
   }
 
   function renderResults(data) {
@@ -901,12 +904,15 @@
     document.getElementById('statPassedN').textContent = counts.passed || 0;
     document.getElementById('statFailedN').textContent = counts.failed || 0;
     document.getElementById('statExpFailN').textContent = counts['expected-fail'] || 0;
+    document.getElementById('statDelayedN').textContent = counts.delayed || 0;
     document.getElementById('statSkippedN').textContent = counts.skipped || 0;
     document.getElementById('statBlockedN').textContent = counts.blocked || 0;
 
     // Pass rate is scoped to "automated" tests only (passed + failed +
-    // known-issue) — blocked/skipped are permanent, documented gaps, not
-    // something a percentage should penalize a run for.
+    // known-issue) — blocked/skipped/delayed are excluded: blocked/skipped
+    // are permanent, documented gaps, and delayed means the webhook did
+    // arrive (just after this test's own timeout), so none of the three
+    // should penalize a run's percentage the way a real failure does.
     const passRateBanner = document.getElementById('passRateBanner');
     const automated = (counts.passed || 0) + (counts.failed || 0) + (counts['expected-fail'] || 0);
     if (activeTab === 'results' && data.available !== false && automated > 0) {
@@ -944,9 +950,9 @@
     lastResultsRenderKey = renderKey;
 
     // Order: failed first (most actionable), then expected-fail, then
-    // ordinary skips, then blocked (permanent, known, least actionable),
-    // then passed.
-    const order = { failed: 0, 'expected-fail': 1, skipped: 2, blocked: 3, passed: 4 };
+    // delayed (worth a look, but the webhook did arrive), then ordinary
+    // skips, then blocked (permanent, known, least actionable), then passed.
+    const order = { failed: 0, 'expected-fail': 1, delayed: 2, skipped: 3, blocked: 4, passed: 5 };
     const sorted = filtered.slice().sort((a, b) => (order[a.category] ?? 9) - (order[b.category] ?? 9));
 
     resultsListEl.innerHTML = sorted
@@ -963,6 +969,14 @@
         const notReceivedBadge = t.likelyNotReceived
           ? '<span class="test-badge not-received" title="No webhook arrived at all before the timeout — could be a disabled trigger in the Dashboard, or a real regression. Not certain either way without Management API access.">not received?</span>'
           : '';
+        // The webhook arrived, just after this test had already given up
+        // waiting — see DELAYED_GRACE_WINDOW_MS in receiver/index.js. Not a
+        // real failure; more a sign the timeout budget for this trigger
+        // might be worth increasing.
+        const delayedBadge =
+          t.category === 'delayed' && t.delayedArrivalMs != null
+            ? `<span class="test-badge delayed" title="A matching webhook arrived ${fmtDuration(t.delayedArrivalMs)} after this test's own timeout — not necessarily a real failure.">+${fmtDuration(t.delayedArrivalMs)} late</span>`
+            : '';
         return `
         <div class="event ${open ? 'open' : ''}" data-id="${id}">
           <div class="event-head" ${canExpand ? `onclick="window.__toggleResult('${id}')"` : 'style="cursor:default;"'}>
@@ -970,6 +984,7 @@
             <div class="test-row" style="flex:1; min-width:0;">
               <span class="test-badge ${t.category}">${categoryLabel(t.category)}</span>
               ${notReceivedBadge}
+              ${delayedBadge}
               <span class="test-file">${escapeHtml(t.file)}</span>
               <span class="test-title">${escapeHtml(t.title)}</span>
             </div>

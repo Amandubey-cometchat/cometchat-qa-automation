@@ -141,7 +141,15 @@ function stripAnsi(str) {
   return typeof str === 'string' ? str.replace(/\[[0-9;]*m/g, '') : str;
 }
 
-function flattenSpecs(suite, fileTitle, out) {
+// How long after a test's own timeout we still credit a matching webhook
+// delivery as "delayed" rather than "missing" — see flattenSpecs below.
+// Tight enough that a coincidental later firing from an unrelated test
+// (same trigger name, different action) is unlikely to land inside it.
+const DELAYED_GRACE_WINDOW_MS = 30000;
+
+const TIMED_OUT_RE = /^Error: Timed out waiting for webhook event "([^"]+)"/;
+
+function flattenSpecs(suite, fileTitle, out, historySnapshot) {
   for (const spec of suite.specs || []) {
     const test = spec.tests && spec.tests[0];
     const result = test && test.results && test.results[test.results.length - 1];
@@ -166,20 +174,45 @@ function flattenSpecs(suite, fileTitle, out) {
     else category = 'passed';
 
     const errorMessage = result.error ? stripAnsi(result.error.message) : null;
+    const timedOutMatch = category === 'failed' && errorMessage ? TIMED_OUT_RE.exec(errorMessage) : null;
+
+    // A "Timed out waiting for webhook event X" failure doesn't necessarily
+    // mean X never arrived — it means X hadn't arrived by the time this
+    // test's own wait budget ran out. Cross-check the persistent history
+    // log: if a matching event lands within DELAYED_GRACE_WINDOW_MS right
+    // after this test ended, it's much more likely a slow delivery than a
+    // genuinely missing one — reclassify as "delayed" instead of "failed"
+    // so it doesn't read as a regression. Not a certain diagnosis (the
+    // later event could coincidentally belong to a different action
+    // entirely), but the tight grace window keeps that unlikely.
+    let delayedArrivalMs = null;
+    if (timedOutMatch && result.startTime && typeof result.duration === 'number' && Array.isArray(historySnapshot)) {
+      const trigger = timedOutMatch[1];
+      const testEndedAt = new Date(result.startTime).getTime() + result.duration;
+      const laterMatch = historySnapshot.find(
+        (e) => e.trigger === trigger && e.receivedAt > testEndedAt && e.receivedAt <= testEndedAt + DELAYED_GRACE_WINDOW_MS
+      );
+      if (laterMatch) {
+        delayedArrivalMs = laterMatch.receivedAt - testEndedAt;
+        category = 'delayed';
+      }
+    }
+
     // Not a certain diagnosis — there's no way to query the actual Dashboard
     // trigger-checkbox state without Management API credentials (still
     // blocked). This only distinguishes two failure *shapes* that otherwise
     // look identical: no webhook arrived at all (could be a disabled
     // trigger, could be a real regression) vs. one arrived but its content
-    // was wrong (definitely a real bug). expectWebhookEvent's timeout error
-    // always starts with this exact text — see src/webhook/webhook.waiter.ts.
-    const likelyNotReceived = category === 'failed' && /^Error: Timed out waiting for webhook event/.test(errorMessage || '');
+    // was wrong (definitely a real bug). Only applies to genuine "failed"
+    // rows — a "delayed" one already has a more specific explanation.
+    const likelyNotReceived = category === 'failed' && !!timedOutMatch;
 
     out.push({
       file: fileTitle,
       title: spec.title,
       category,
       likelyNotReceived,
+      delayedArrivalMs,
       status: result.status,
       duration: result.duration,
       error: errorMessage,
@@ -188,7 +221,7 @@ function flattenSpecs(suite, fileTitle, out) {
     });
   }
   for (const child of suite.suites || []) {
-    flattenSpecs(child, fileTitle, out);
+    flattenSpecs(child, fileTitle, out, historySnapshot);
   }
 }
 
@@ -214,7 +247,7 @@ app.get('/test-results', (_req, res) => {
 
   const tests = [];
   for (const suite of report.suites || []) {
-    flattenSpecs(suite, suite.file || suite.title, tests);
+    flattenSpecs(suite, suite.file || suite.title, tests, history);
   }
 
   const counts = { passed: 0, failed: 0, skipped: 0, 'expected-fail': 0 };
