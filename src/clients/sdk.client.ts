@@ -33,6 +33,11 @@ export interface SdkClient {
   acceptCall(sessionId: string): Promise<{ sessionId: string }>;
   /** `status` is CometChat.CALL_STATUS.REJECTED ('rejected', receiver declining) or .CANCELLED ('cancelled', initiator backing out before pickup) — same underlying method, different status per CometChat's docs. */
   rejectCall(sessionId: string, status: 'rejected' | 'cancelled'): Promise<void>;
+  /** after_feed_item_interacted: no REST equivalent exists (checked; not found) — the SDK's reportFeedEngagement is the only way. Confirmed live 2026-09-10: CometChat.getNotificationFeedItem(id) returns an item with a blank internal id (a real SDK quirk), so the item must come from NotificationFeedRequestBuilder().fetchNext() instead. */
+  reportFeedEngagement(feedItemId: string, interactionString: string): Promise<void>;
+  /** after_push_notification_delivered/clicked: client-reported, not device-dependent — confirmed live 2026-09-10 that a constructed CometChat.PushNotification (no real FCM/APNs delivery involved) is enough to fire these. */
+  markPushNotificationDelivered(pushNotificationId: string): Promise<void>;
+  markPushNotificationClicked(pushNotificationId: string): Promise<void>;
   disconnect(): Promise<void>;
   close(): Promise<void>;
 }
@@ -120,6 +125,42 @@ export async function launchSdkClient(uid: string, authToken: string): Promise<S
           // @ts-ignore
           CometChat.rejectCall(sessionId, status === 'cancelled' ? CometChat.CALL_STATUS.CANCELLED : CometChat.CALL_STATUS.REJECTED).then(() => undefined),
         { sessionId, status }
+      );
+    },
+    async reportFeedEngagement(feedItemId, interactionString) {
+      return page.evaluate(
+        async ({ feedItemId, interactionString }) => {
+          // @ts-ignore - CometChat.getNotificationFeedItem(id) returns an item with a blank id (verified live); the list request returns properly-populated items instead.
+          const request = new CometChat.NotificationFeedRequestBuilder().setLimit(50).build();
+          const items = await request.fetchNext();
+          const match = items.find((i: any) => i.getId() === feedItemId);
+          if (!match) throw new Error(`Feed item ${feedItemId} not found in the first 50 items of this user's feed`);
+          // @ts-ignore
+          await CometChat.reportFeedEngagement(match, interactionString);
+        },
+        { feedItemId, interactionString }
+      );
+    },
+    async markPushNotificationDelivered(pushNotificationId) {
+      return page.evaluate(
+        ({ pushNotificationId }) => {
+          // @ts-ignore
+          const pn = new CometChat.PushNotification({ id: pushNotificationId, announcementId: pushNotificationId, campaignId: null, source: 'campaign' });
+          // @ts-ignore
+          return CometChat.markPushNotificationDelivered(pn).then(() => undefined);
+        },
+        { pushNotificationId }
+      );
+    },
+    async markPushNotificationClicked(pushNotificationId) {
+      return page.evaluate(
+        ({ pushNotificationId }) => {
+          // @ts-ignore
+          const pn = new CometChat.PushNotification({ id: pushNotificationId, announcementId: pushNotificationId, campaignId: null, source: 'campaign' });
+          // @ts-ignore
+          return CometChat.markPushNotificationClicked(pn).then(() => undefined);
+        },
+        { pushNotificationId }
       );
     },
     async disconnect() {

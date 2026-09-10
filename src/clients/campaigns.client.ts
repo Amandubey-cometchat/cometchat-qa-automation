@@ -32,6 +32,17 @@ export async function createChannel(name: string, type: 'in_app' | 'push' = 'in_
   return apiRequest('POST', '/campaigns/channels', { name, type, enabled: true });
 }
 
+export async function listChannels(type?: 'in_app' | 'push'): Promise<CampaignChannel[]> {
+  return apiRequest('GET', `/campaigns/channels${type ? `?type=${type}` : ''}`);
+}
+
+/** Push channels are capped at 1 per app (confirmed live 2026-09-10 — a second POST /channels 409s with ERR_CHANNEL_LIMIT_REACHED), so this finds the existing one before creating a fresh one. */
+export async function getOrCreatePushChannel(): Promise<CampaignChannel> {
+  const existing = await listChannels('push');
+  if (existing.length) return existing[0];
+  return createChannel(`QA Push Channel ${Date.now()}`, 'push');
+}
+
 export async function createTemplate(
   name: string,
   channelId: string,

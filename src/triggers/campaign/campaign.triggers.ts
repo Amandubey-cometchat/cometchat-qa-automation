@@ -9,6 +9,8 @@
  * (a real Campaigns send), so it's not replicated here.
  */
 import * as campaignsClient from '../../clients/campaigns.client';
+import { createAuthToken } from '../../clients/cometchat.client';
+import { launchSdkClient, SdkClient } from '../../clients/sdk.client';
 
 /** Creates a fresh in_app channel + approved template pair — the prerequisite for any notification/campaign send. Channel/template names must be unique per CometChat, so a fresh pair is created per call, matching this project's unique-guid-per-test convention elsewhere. */
 export async function setupInAppChannelAndTemplate(label: string, content: { title: string; body: string }) {
@@ -35,4 +37,33 @@ export async function sendCampaignTo(receiverUid: string, label = 'campaign') {
   await campaignsClient.addCampaignRecipients(campaign.id, [receiverUid]);
   await campaignsClient.sendCampaign(campaign.id);
   return { campaignId: campaign.id };
+}
+
+/** A real, connected SDK session for the receiver — needed for after_feed_item_interacted and the push-tracking triggers below, none of which have a REST equivalent. Caller is responsible for client.close(). */
+export async function connectReceiverSession(uid: string): Promise<SdkClient> {
+  const { authToken } = await createAuthToken(uid);
+  return launchSdkClient(uid, authToken);
+}
+
+/** after_feed_item_interacted: no REST endpoint exists for this — see sdk.client.ts's reportFeedEngagement. */
+export async function reportFeedItemEngagement(client: SdkClient, feedItemId: string, interactionString = 'clicked') {
+  await client.reportFeedEngagement(feedItemId, interactionString);
+}
+
+/** after_push_notification_sent: sends to the app's one push channel (created on first use, reused after — see getOrCreatePushChannel). Fires on dispatch attempt, confirmed live not to require real FCM/APNs credentials. */
+export async function sendPushNotification(receiverUid: string, label = 'push') {
+  const channel = await campaignsClient.getOrCreatePushChannel();
+  const unique = `${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const template = await campaignsClient.createTemplate(`QA ${unique} Template`, channel.channelId, 'push', { title: 'QA Push', body: 'Automated test push notification' });
+  const send = await campaignsClient.sendNotification(template.templateId, [receiverUid]);
+  return { notificationId: send.notificationId };
+}
+
+/** after_push_notification_delivered/clicked: client-reported via a real SDK session — see sdk.client.ts's markPushNotificationDelivered/Clicked. Neither requires real FCM/APNs delivery to a real device (confirmed live). */
+export async function markPushDelivered(client: SdkClient, pushNotificationId: string) {
+  await client.markPushNotificationDelivered(pushNotificationId);
+}
+
+export async function markPushClicked(client: SdkClient, pushNotificationId: string) {
+  await client.markPushNotificationClicked(pushNotificationId);
 }

@@ -66,6 +66,11 @@ export function byCampaignId(campaignId: string): WebhookMatcher {
   return (p) => p?.data?.campaignId === campaignId;
 }
 
+/** Campaign push-notification webhooks (after_push_notification_sent/delivered/clicked) correlate via pushNotificationId. Verified live 2026-09-10. */
+export function byPushNotificationId(pushNotificationId: string): WebhookMatcher {
+  return (p) => p?.data?.pushNotificationId === pushNotificationId;
+}
+
 export function and(...matchers: WebhookMatcher[]): WebhookMatcher {
   return (p) => matchers.every((m) => m(p));
 }
