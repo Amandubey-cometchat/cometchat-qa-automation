@@ -23,7 +23,7 @@ webhook delivery.
 
    ```bash
    git clone <this repo>
-   cd webhook-automation/projects/webhooks
+   cd webhook-automation/cometchat-automation/webhook-automation
    ./run.sh        # macOS/Linux
    run.bat         # Windows
    ```
@@ -390,8 +390,8 @@ registry — not needed to just run the suite.
 ### Architecture
 
 ```
-projects/webhooks/            (this project; the repo root holds only
-                                .github/, render.yaml and projects/)
+cometchat-automation/webhook-automation/   (this project; the repo root holds
+                                only .github/, render.yaml and cometchat-automation/)
   run.sh / run.bat            -> cross-platform bootstrap: Node/deps/browser check, hands off to cli/
   cli/
     index.ts                  -> main entry (menu + non-interactive commands) — npm run webhook
