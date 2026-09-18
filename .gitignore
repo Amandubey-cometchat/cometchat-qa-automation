@@ -1,4 +1,4 @@
-# Repo-wide safety net. Each project under cometchat-automation/ keeps its own
+# Repo-wide safety net. Each <feature>-automation/ project keeps its own
 # .gitignore for its own build output — these patterns just make sure no
 # project, current or future, can ever commit secrets or dependencies.
 .env

@@ -20,7 +20,7 @@ jobs:
     # inside the project folder instead.
     defaults:
       run:
-        working-directory: cometchat-automation/webhook-automation
+        working-directory: webhook-automation
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: cometchat-automation/webhook-automation/package-lock.json
+          cache-dependency-path: webhook-automation/package-lock.json
 
       - run: npm ci
 
@@ -67,8 +67,8 @@ jobs:
           name: webhook-test-reports
           # Artifact paths resolve from the repo root, not working-directory.
           path: |
-            cometchat-automation/webhook-automation/reports/html
-            cometchat-automation/webhook-automation/reports/junit
-            cometchat-automation/webhook-automation/reports/coverage
-            cometchat-automation/webhook-automation/logs
+            webhook-automation/reports/html
+            webhook-automation/reports/junit
+            webhook-automation/reports/coverage
+            webhook-automation/logs
           retention-days: 14
