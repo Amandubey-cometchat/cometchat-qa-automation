@@ -2,15 +2,15 @@
   "environments": {
     "prod-eu": {
       "environment": "prod-eu",
-      "generatedAt": "2026-09-10T06:46:32.032Z",
+      "generatedAt": "2026-09-17T14:37:35.437Z",
       "counts": {
-        "Total": 61,
-        "PASSED": 38,
+        "Total": 64,
+        "PASSED": 49,
         "FAILED": 1,
         "SKIPPED": 0,
-        "NOT_IMPLEMENTED": 8,
-        "BLOCKED": 13,
-        "OTHER": 1
+        "NOT_IMPLEMENTED": 2,
+        "BLOCKED": 4,
+        "OTHER": 8
       },
       "rows": [
         {
@@ -328,8 +328,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-deleted.spec.ts",
           "testTitleMatch": "message_deleted webhook fires when a message is deleted",
-          "runStatus": "FAILED",
-          "error": "Error: DELETE /messages/1080 failed: 403 {\"error\":{\"message\":\"The user with UID cometchat-uid-1 does not have access to the message with id 1080.\",\"devMessage\":\"The user with UID cometchat-uid-1 does not have access to a message with id 1080.\",\"source\":\"chat-api\",\"code\":\"ERR_MESSAGE_NO_ACCESS\"}}"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "message_reaction_added",
@@ -504,15 +504,18 @@
             "prod-eu",
             "prod-in"
           ],
-          "trigger": "Pin a message (requires the Pin Message extension)",
+          "trigger": "POST /messages/{id}/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/messages/pin-message)",
           "expectedEvent": "message_pinned",
           "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/message/message-gaps.spec.ts",
-          "testTitleMatch": "message_pinned (documented gap)",
-          "reason": "Live-probed 2026-09-04 against prod-eu: \"Pin Message\" exists as a catalog extension (GET /extensions/pin-message returns real metadata), but GET /extensions returns [] — the extension is NOT currently enabled on this app. Two guessed action-endpoint paths (POST /extensions/pin-message, POST /v1/pin) both 404 with ERR_API_NOT_FOUND, so the real pin/unpin endpoint is unconfirmed — CometChat's public docs only show it called via the JS SDK's CometChat.callExtension('pin-message', 'POST', 'v1/pin', ...), not a documented flat REST path. Also not listed in CometChat's own webhook trigger documentation at all. Needs: (1) Pin Message enabled in Dashboard -> Chat & Messaging -> Features on a target app, (2) the real REST/SDK call path confirmed (not guessed), (3) confirmation this actually fires a message_pinned webhook.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.pinnedBy",
+            "data.message.pinnedAt"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-pinned.spec.ts",
+          "testTitleMatch": "message_pinned webhook fires when a message is pinned",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -524,15 +527,18 @@
             "prod-eu",
             "prod-in"
           ],
-          "trigger": "Unpin a message (requires the Pin Message extension)",
+          "trigger": "DELETE /messages/{id}/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/messages/unpin-message)",
           "expectedEvent": "message_unpinned",
           "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/message/message-gaps.spec.ts",
-          "testTitleMatch": "message_unpinned (documented gap)",
-          "reason": "Same root cause as message_pinned above.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.unpinnedBy",
+            "data.message.unpinnedAt"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-unpinned.spec.ts",
+          "testTitleMatch": "message_unpinned webhook fires when a message is unpinned",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -544,14 +550,14 @@
             "prod-eu",
             "prod-in"
           ],
-          "trigger": "Pin a conversation",
+          "trigger": "POST /users/{uid}/conversation/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/conversations/pin-user-conversation)",
           "expectedEvent": "conversation_pinned",
           "automationMethod": "REST",
           "expectedPayloadKeys": [],
           "status": "NOT_IMPLEMENTED",
           "specFile": "src/tests/message/message-gaps.spec.ts",
           "testTitleMatch": "conversation_pinned (documented gap)",
-          "reason": "Searched CometChat's public docs and extension catalog 2026-09-04 — zero trace of this trigger or any REST/SDK endpoint for pinning a conversation (distinct from pinning a message). Not in the webhook events documentation, not a discoverable extension. Needs the exact trigger mechanism confirmed — likely only visible in the Dashboard's own webhook trigger checkboxes, which may be ahead of the public docs.",
+          "reason": "UPDATE 2026-09-12 (supersedes the 2026-09-04 \"no endpoint exists\" finding — CometChat added REST conversation pinning since then): live-probed against staging-us — POST /users/{uid}/conversation/pin succeeds (200, real pinnedBy/pinnedAt in the response), but no conversation_pinned webhook arrived within 15s. Same pattern seen before with Group and Moderation triggers: the underlying feature works over REST, but the specific webhook trigger checkbox is very likely unchecked in this app's Dashboard webhook config. Needs a Dashboard check (Webhooks -> Message category -> confirm conversation_pinned is individually enabled, not just the category), then re-probe — the client/trigger side is otherwise ready to wire up immediately once the webhook itself fires.",
           "runStatus": "NOT_IMPLEMENTED",
           "error": null
         },
@@ -564,14 +570,14 @@
             "prod-eu",
             "prod-in"
           ],
-          "trigger": "Unpin a conversation",
+          "trigger": "DELETE /users/{uid}/conversation/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/conversations/unpin-user-conversation)",
           "expectedEvent": "conversation_unpinned",
           "automationMethod": "REST",
           "expectedPayloadKeys": [],
           "status": "NOT_IMPLEMENTED",
           "specFile": "src/tests/message/message-gaps.spec.ts",
           "testTitleMatch": "conversation_unpinned (documented gap)",
-          "reason": "Same root cause as conversation_pinned above.",
+          "reason": "Same root cause as conversation_pinned above — live-probed together 2026-09-12, same result (REST succeeds, webhook silent).",
           "runStatus": "NOT_IMPLEMENTED",
           "error": null
         },
@@ -881,18 +887,201 @@
           "error": null
         },
         {
+          "id": "after_notification_created",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notifications/messages (real Campaigns REST send)",
+          "expectedEvent": "after_notification_created",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.notificationId",
+            "data.templateId",
+            "data.channels",
+            "data.sendMode"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-notification-created.spec.ts",
+          "testTitleMatch": "after_notification_created webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
+          "id": "after_feed_item_sent",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notifications/messages, in_app channel",
+          "expectedEvent": "after_feed_item_sent",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-feed-item-sent.spec.ts",
+          "testTitleMatch": "after_feed_item_sent webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
+          "id": "after_feed_item_delivered",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notification-feed/{id}/read — delivered is set implicitly, not a separate action",
+          "expectedEvent": "after_feed_item_delivered",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-feed-item-delivered.spec.ts",
+          "testTitleMatch": "after_feed_item_delivered webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
+          "id": "after_feed_item_read",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notification-feed/{id}/read",
+          "expectedEvent": "after_feed_item_read",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-feed-item-read.spec.ts",
+          "testTitleMatch": "after_feed_item_read webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
           "id": "after_campaign_completed",
           "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/campaigns + /recipients + /send",
           "expectedEvent": "after_campaign_completed",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_campaign_completed (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
-          "runStatus": "BLOCKED",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.campaignId",
+            "data.status",
+            "data.sentCount"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-campaign-completed.spec.ts",
+          "testTitleMatch": "after_campaign_completed webhook fires",
+          "runStatus": "FAILED",
+          "error": "Error: Timed out waiting for webhook event \"after_campaign_completed\" after 10000ms.\nEvents actually received in this window:\n  - after_notification_created at 2026-09-17T14:34:38.439Z (event id: ecb2d990-b9d0-491b-80c4-7834f53b6432)\n  - after_feed_item_sent at 2026-09-17T14:34:38.497Z (event id: 813bbfe6-8a03-42c3-b7cc-db26329e1bdf)"
+        },
+        {
+          "id": "after_feed_item_interacted",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "CometChat.reportFeedEngagement via a real connected SDK session — no REST endpoint exists for this",
+          "expectedEvent": "after_feed_item_interacted",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.notificationId",
+            "data.receiver",
+            "data.engagedAt",
+            "data.topic"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-feed-item-interacted.spec.ts",
+          "testTitleMatch": "after_feed_item_interacted webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
+          "id": "after_push_notification_sent",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notifications/messages, push channel — fires on dispatch attempt, no real FCM/APNs credentials required",
+          "expectedEvent": "after_push_notification_sent",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.pushNotificationId",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-push-notification-sent.spec.ts",
+          "testTitleMatch": "after_push_notification_sent webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
+          "id": "after_push_notification_delivered",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "CometChat.markPushNotificationDelivered via a real connected SDK session — client-reported, no real device required",
+          "expectedEvent": "after_push_notification_delivered",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.pushNotificationId",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-push-notification-delivered.spec.ts",
+          "testTitleMatch": "after_push_notification_delivered webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
+          "id": "after_push_notification_clicked",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "CometChat.markPushNotificationClicked via a real connected SDK session — client-reported, no real device required",
+          "expectedEvent": "after_push_notification_clicked",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.pushNotificationId",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-push-notification-clicked.spec.ts",
+          "testTitleMatch": "after_push_notification_clicked webhook fires",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -906,127 +1095,7 @@
           "status": "BLOCKED",
           "specFile": "src/tests/campaign/campaign.spec.ts",
           "testTitleMatch": "after_campaign_failed (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_feed_item_read",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_feed_item_read",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_feed_item_read (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_feed_item_interacted",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_feed_item_interacted",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_feed_item_interacted (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_feed_item_sent",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_feed_item_sent",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_feed_item_sent (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_push_notification_clicked",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_push_notification_clicked",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_push_notification_clicked (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_notification_created",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_notification_created",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_notification_created (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_feed_item_delivered",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_feed_item_delivered",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_feed_item_delivered (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_push_notification_sent",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_push_notification_sent",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_push_notification_sent (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_push_notification_delivered",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_push_notification_delivered",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_push_notification_delivered (documented gap)",
-          "reason": "This project has no Campaigns/Notifications module integration on any environment, and it is unconfirmed whether that module is even enabled on any of the 4 target apps. Needs: confirmation the module is enabled, and the relevant Campaign management API/UI to actually run one.",
+          "reason": "No reliable way found to trigger a genuine campaign failure — confirmed live 2026-09-10: adding a nonexistent/invalid user ID as the sole recipient and sending still produces after_campaign_completed (CometChat does not appear to validate recipient existence before considering the send complete). Would need a real, distinct failure condition (e.g. a since-deleted channel) that has not been identified yet.",
           "runStatus": "BLOCKED",
           "error": null
         },
@@ -1167,27 +1236,30 @@
           "id": "after_message",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-us"
           ],
-          "trigger": "Send a text message (legacy webhook system)",
+          "trigger": "Send a text message (legacy webhook system) — fires AFTER the message is persisted, distinct from before_message",
           "expectedEvent": "after_message",
           "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "after_message (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.sender",
+            "data.receiver",
+            "data.receiverType",
+            "data.data.text"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/after-message.spec.ts",
+          "testTitleMatch": "after_message webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "before_message",
           "category": "LEGACY",
           "environments": [
-            "prod-eu"
+            "prod-eu",
+            "prod-us"
           ],
           "trigger": "Send a text message (legacy webhook system) — fires synchronously BEFORE the message is persisted",
           "expectedEvent": "before_message",
@@ -1208,75 +1280,144 @@
           "id": "message_delivery_receipt_legacy",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-us"
           ],
           "trigger": "A real SDK client calls markAsDelivered (legacy webhook system)",
           "expectedEvent": "message_delivery_receipt",
           "automationMethod": "SDK",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "message_delivery_receipt (legacy) (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window. Shares its trigger name with the modern message_delivery_receipt webhook (see message.registry.ts) — the payload shape is not assumed to be identical and needs its own live capture once testable.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.messageId",
+            "data.receiptType",
+            "data.messageSender",
+            "data.receiptSender",
+            "data.receiptReceiver"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/message-delivery-receipt-legacy.spec.ts",
+          "testTitleMatch": "message_delivery_receipt (legacy) webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "message_read_receipt_legacy",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-us"
           ],
           "trigger": "A real SDK client calls markAsRead (legacy webhook system)",
           "expectedEvent": "message_read_receipt",
           "automationMethod": "SDK",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "message_read_receipt (legacy) (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window. Shares its trigger name with the modern message_read_receipt webhook (see message.registry.ts) — the payload shape is not assumed to be identical and needs its own live capture once testable.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.messageId",
+            "data.receiptType",
+            "data.messageSender",
+            "data.receiptSender",
+            "data.receiptReceiver"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/message-read-receipt-legacy.spec.ts",
+          "testTitleMatch": "message_read_receipt (legacy) webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "after_connection_status_changed",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-us"
           ],
           "trigger": "A real SDK client connects/disconnects (legacy webhook system)",
           "expectedEvent": "after_connection_status_changed",
           "automationMethod": "SDK",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "after_connection_status_changed (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.user.uid",
+            "data.user.status",
+            "data.event.type"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/after-connection-status-changed.spec.ts",
+          "testTitleMatch": "after_connection_status_changed webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "email-notification-payload-generated",
+          "category": "NOTIFICATION",
+          "environments": [
+            "prod-us"
+          ],
+          "trigger": "Send a message to a recipient with the Custom Email Provider enabled (fires once per recipient; live-measured 61.8s after send)",
+          "expectedEvent": "email-notification-payload-generated",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.to.uid",
+            "data.messages",
+            "data.senderDetails",
+            "data.subject"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/notification/email-notification.spec.ts",
+          "testTitleMatch": "email-notification-payload-generated webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "sms-notification-payload-generated",
+          "category": "NOTIFICATION",
+          "environments": [
+            "prod-us"
+          ],
+          "trigger": "Send a message to a recipient with the Custom SMS Provider enabled (fires once per recipient; live-measured 60.4s after send)",
+          "expectedEvent": "sms-notification-payload-generated",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.to.uid",
+            "data.messages",
+            "data.senderDetails",
+            "data.smsContent"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/notification/sms-notification.spec.ts",
+          "testTitleMatch": "sms-notification-payload-generated webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "push-notification-payload-generated",
+          "category": "NOTIFICATION",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "Send a message to a recipient with the Custom Push Notification Provider enabled (also fires for calls/reactions/group actions — untested here)",
+          "expectedEvent": "push-notification-payload-generated",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.to.uid",
+            "data.notificationDetails.title",
+            "data.notificationDetails.body",
+            "data.notificationDetails.sender",
+            "data.notificationDetails.type"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/notification/push-notification.spec.ts",
+          "testTitleMatch": "push-notification-payload-generated webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         }
       ]
     },
     "prod-us": {
       "environment": "prod-us",
-      "generatedAt": "2026-09-10T13:12:03.918Z",
+      "generatedAt": "2026-09-17T14:24:52.775Z",
       "counts": {
-        "Total": 61,
-        "PASSED": 9,
-        "FAILED": 0,
+        "Total": 64,
+        "PASSED": 45,
+        "FAILED": 5,
         "SKIPPED": 0,
-        "NOT_IMPLEMENTED": 8,
+        "NOT_IMPLEMENTED": 2,
         "BLOCKED": 4,
-        "OTHER": 40
+        "OTHER": 8
       },
       "rows": [
         {
@@ -1300,7 +1441,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-created.spec.ts",
           "testTitleMatch": "group_created webhook fires with correct guid, name, type and owner",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1322,7 +1463,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-updated.spec.ts",
           "testTitleMatch": "group_updated webhook fires with the new name applied",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1343,7 +1484,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-deleted.spec.ts",
           "testTitleMatch": "group_deleted webhook fires for the deleted guid",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1366,7 +1507,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-added.spec.ts",
           "testTitleMatch": "group_member_added webhook fires with correct member and actor",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1389,7 +1530,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-kicked.spec.ts",
           "testTitleMatch": "group_member_kicked webhook fires with correct member and actor",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1413,7 +1554,7 @@
           "specFile": "src/tests/group/group-member-banned.spec.ts",
           "testTitleMatch": "group_member_banned webhook fires with correct member and actor",
           "reason": "AUTOMATED, but expect this test to report as an *expected* failure: confirmed live CometChat bug — when Ban Member is called with onBehalfOf, data.members incorrectly contains the actor's UID instead of the banned target's. Reproduced outside this suite too, so not a test artifact.",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1437,7 +1578,7 @@
           "specFile": "src/tests/group/group-member-unbanned.spec.ts",
           "testTitleMatch": "group_member_unbanned webhook fires with correct member and actor",
           "reason": "Same confirmed CometChat bug as group_member_banned above.",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1459,7 +1600,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-scope-changed.spec.ts",
           "testTitleMatch": "group_member_scope_changed webhook fires with old and new scope",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1482,7 +1623,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-owner-transferred.spec.ts",
           "testTitleMatch": "group_owner_transferred webhook fires with correct old and new owner",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1505,7 +1646,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-joined.spec.ts",
           "testTitleMatch": "group_member_joined webhook fires when a user joins a public group themselves",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1527,7 +1668,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/group/group-member-left.spec.ts",
           "testTitleMatch": "group_member_left webhook fires when a user leaves a group themselves",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1551,7 +1692,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-sent.spec.ts",
           "testTitleMatch": "message_sent webhook fires when a text message is sent",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1573,7 +1714,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-edited.spec.ts",
           "testTitleMatch": "message_edited webhook fires when a message is edited, with the new text",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1594,7 +1735,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-deleted.spec.ts",
           "testTitleMatch": "message_deleted webhook fires when a message is deleted",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1617,7 +1758,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-reaction-added.spec.ts",
           "testTitleMatch": "message_reaction_added webhook fires with the correct emoji, message and reactor",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1640,7 +1781,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-reaction-removed.spec.ts",
           "testTitleMatch": "message_reaction_removed webhook fires with the correct emoji, message and reactor",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1662,7 +1803,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/user-mentioned.spec.ts",
           "testTitleMatch": "user_mentioned webhook fires when a message mentions a user",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1687,7 +1828,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-delivery-receipt.spec.ts",
           "testTitleMatch": "message_delivery_receipt webhook fires when a recipient client acknowledges delivery",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1712,7 +1853,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-read-receipt.spec.ts",
           "testTitleMatch": "message_read_receipt webhook fires when a recipient client marks a message read",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1735,7 +1876,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-delivered-to-all.spec.ts",
           "testTitleMatch": "message_delivered_to_all webhook fires once every group member has received the message",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1758,7 +1899,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-read-by-all.spec.ts",
           "testTitleMatch": "message_read_by_all webhook fires once every group member has read the message",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1770,16 +1911,19 @@
             "prod-eu",
             "prod-in"
           ],
-          "trigger": "Pin a message (requires the Pin Message extension)",
+          "trigger": "POST /messages/{id}/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/messages/pin-message)",
           "expectedEvent": "message_pinned",
           "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/message/message-gaps.spec.ts",
-          "testTitleMatch": "message_pinned (documented gap)",
-          "reason": "Live-probed 2026-09-04 against prod-eu: \"Pin Message\" exists as a catalog extension (GET /extensions/pin-message returns real metadata), but GET /extensions returns [] — the extension is NOT currently enabled on this app. Two guessed action-endpoint paths (POST /extensions/pin-message, POST /v1/pin) both 404 with ERR_API_NOT_FOUND, so the real pin/unpin endpoint is unconfirmed — CometChat's public docs only show it called via the JS SDK's CometChat.callExtension('pin-message', 'POST', 'v1/pin', ...), not a documented flat REST path. Also not listed in CometChat's own webhook trigger documentation at all. Needs: (1) Pin Message enabled in Dashboard -> Chat & Messaging -> Features on a target app, (2) the real REST/SDK call path confirmed (not guessed), (3) confirmation this actually fires a message_pinned webhook.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.pinnedBy",
+            "data.message.pinnedAt"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-pinned.spec.ts",
+          "testTitleMatch": "message_pinned webhook fires when a message is pinned",
+          "runStatus": "FAILED",
+          "error": "Error: POST /messages/6077/pin failed: 400 {\"error\":{\"message\":\"The number of pinned messages for the conversation with id cometchat-uid-1_user_cometchat-uid-2 has reached the allowed limit of 5.\",\"devMessage\":\"The number of pinned messages for the conversation with id cometchat-uid-1_user_cometchat-uid-2 has reached the allowed limit of 5.\",\"source\":\"chat-api\",\"code\":\"ERR_PINNED_MESSAGES_LIMIT_EXCEEDED\"}}"
         },
         {
           "id": "message_unpinned",
@@ -1790,16 +1934,19 @@
             "prod-eu",
             "prod-in"
           ],
-          "trigger": "Unpin a message (requires the Pin Message extension)",
+          "trigger": "DELETE /messages/{id}/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/messages/unpin-message)",
           "expectedEvent": "message_unpinned",
           "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/message/message-gaps.spec.ts",
-          "testTitleMatch": "message_unpinned (documented gap)",
-          "reason": "Same root cause as message_pinned above.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.unpinnedBy",
+            "data.message.unpinnedAt"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-unpinned.spec.ts",
+          "testTitleMatch": "message_unpinned webhook fires when a message is unpinned",
+          "runStatus": "FAILED",
+          "error": "Error: POST /messages/6086/pin failed: 400 {\"error\":{\"message\":\"The number of pinned messages for the conversation with id cometchat-uid-1_user_cometchat-uid-2 has reached the allowed limit of 5.\",\"devMessage\":\"The number of pinned messages for the conversation with id cometchat-uid-1_user_cometchat-uid-2 has reached the allowed limit of 5.\",\"source\":\"chat-api\",\"code\":\"ERR_PINNED_MESSAGES_LIMIT_EXCEEDED\"}}"
         },
         {
           "id": "conversation_pinned",
@@ -1810,14 +1957,14 @@
             "prod-eu",
             "prod-in"
           ],
-          "trigger": "Pin a conversation",
+          "trigger": "POST /users/{uid}/conversation/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/conversations/pin-user-conversation)",
           "expectedEvent": "conversation_pinned",
           "automationMethod": "REST",
           "expectedPayloadKeys": [],
           "status": "NOT_IMPLEMENTED",
           "specFile": "src/tests/message/message-gaps.spec.ts",
           "testTitleMatch": "conversation_pinned (documented gap)",
-          "reason": "Searched CometChat's public docs and extension catalog 2026-09-04 — zero trace of this trigger or any REST/SDK endpoint for pinning a conversation (distinct from pinning a message). Not in the webhook events documentation, not a discoverable extension. Needs the exact trigger mechanism confirmed — likely only visible in the Dashboard's own webhook trigger checkboxes, which may be ahead of the public docs.",
+          "reason": "UPDATE 2026-09-12 (supersedes the 2026-09-04 \"no endpoint exists\" finding — CometChat added REST conversation pinning since then): live-probed against staging-us — POST /users/{uid}/conversation/pin succeeds (200, real pinnedBy/pinnedAt in the response), but no conversation_pinned webhook arrived within 15s. Same pattern seen before with Group and Moderation triggers: the underlying feature works over REST, but the specific webhook trigger checkbox is very likely unchecked in this app's Dashboard webhook config. Needs a Dashboard check (Webhooks -> Message category -> confirm conversation_pinned is individually enabled, not just the category), then re-probe — the client/trigger side is otherwise ready to wire up immediately once the webhook itself fires.",
           "runStatus": "NOT_IMPLEMENTED",
           "error": null
         },
@@ -1830,14 +1977,14 @@
             "prod-eu",
             "prod-in"
           ],
-          "trigger": "Unpin a conversation",
+          "trigger": "DELETE /users/{uid}/conversation/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/conversations/unpin-user-conversation)",
           "expectedEvent": "conversation_unpinned",
           "automationMethod": "REST",
           "expectedPayloadKeys": [],
           "status": "NOT_IMPLEMENTED",
           "specFile": "src/tests/message/message-gaps.spec.ts",
           "testTitleMatch": "conversation_unpinned (documented gap)",
-          "reason": "Same root cause as conversation_pinned above.",
+          "reason": "Same root cause as conversation_pinned above — live-probed together 2026-09-12, same result (REST succeeds, webhook silent).",
           "runStatus": "NOT_IMPLEMENTED",
           "error": null
         },
@@ -1861,7 +2008,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-initiated.spec.ts",
           "testTitleMatch": "call_initiated webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1884,7 +2031,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-unanswered.spec.ts",
           "testTitleMatch": "call_unanswered webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1907,7 +2054,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-cancelled.spec.ts",
           "testTitleMatch": "call_cancelled webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1930,7 +2077,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-rejected.spec.ts",
           "testTitleMatch": "call_rejected webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1953,7 +2100,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-busy.spec.ts",
           "testTitleMatch": "call_busy webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1973,7 +2120,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-started.spec.ts",
           "testTitleMatch": "call_started webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -1993,8 +2140,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-participant-joined.spec.ts",
           "testTitleMatch": "call_participant_joined webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
+          "runStatus": "FAILED",
+          "error": "Error: page.evaluate: o"
         },
         {
           "id": "call_participant_left",
@@ -2013,8 +2160,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-participant-left.spec.ts",
           "testTitleMatch": "call_participant_left webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
+          "runStatus": "FAILED",
+          "error": "Error: page.evaluate: o"
         },
         {
           "id": "call_ended",
@@ -2033,7 +2180,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-ended.spec.ts",
           "testTitleMatch": "call_ended webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -2053,7 +2200,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/meetings/meeting-started.spec.ts",
           "testTitleMatch": "meeting_started webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -2073,7 +2220,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/meetings/meeting-participant-joined.spec.ts",
           "testTitleMatch": "meeting_participant_joined webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -2093,7 +2240,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/meetings/meeting-participant-left.spec.ts",
           "testTitleMatch": "meeting_participant_left webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -2113,7 +2260,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/meetings/meeting-ended.spec.ts",
           "testTitleMatch": "meeting_ended webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -2378,7 +2525,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/user/user-blocked.spec.ts",
           "testTitleMatch": "user_blocked webhook fires with the correct blocker and blocked user",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -2400,7 +2547,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/user/user-unblocked.spec.ts",
           "testTitleMatch": "user_unblocked webhook fires with the correct unblocker and unblocked user",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -2423,7 +2570,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/user/user-connection-status-changed.spec.ts",
           "testTitleMatch": "user_connection_status_changed webhook fires when a client disconnects",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -2447,8 +2594,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/moderation/moderation-engine-blocked.spec.ts",
           "testTitleMatch": "moderation_engine_blocked webhook fires when a message matches the Profanity filter",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
+          "runStatus": "FAILED",
+          "error": "Error: Timed out waiting for webhook event \"moderation_engine_blocked\" after 10000ms.\nEvents actually received in this window:\n  - moderation_engine_approved at 2026-09-17T14:24:28.798Z (event id: c63e6644-3f6c-4c80-8ff7-ab4ffe25a2af)\n  - message_sent at 2026-09-17T14:24:28.907Z (event id: 8df19cc0-6ce4-4b09-99db-1de04f7f1dea)"
         },
         {
           "id": "moderation_engine_approved",
@@ -2469,7 +2616,7 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/moderation/moderation-engine-approved.spec.ts",
           "testTitleMatch": "moderation_engine_approved webhook fires when a clean message clears moderation",
-          "runStatus": "AUTOMATED (not in last run)",
+          "runStatus": "PASSED",
           "error": null
         },
         {
@@ -2496,27 +2643,30 @@
           "id": "after_message",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-us"
           ],
-          "trigger": "Send a text message (legacy webhook system)",
+          "trigger": "Send a text message (legacy webhook system) — fires AFTER the message is persisted, distinct from before_message",
           "expectedEvent": "after_message",
           "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "after_message (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.sender",
+            "data.receiver",
+            "data.receiverType",
+            "data.data.text"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/after-message.spec.ts",
+          "testTitleMatch": "after_message webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "before_message",
           "category": "LEGACY",
           "environments": [
-            "prod-eu"
+            "prod-eu",
+            "prod-us"
           ],
           "trigger": "Send a text message (legacy webhook system) — fires synchronously BEFORE the message is persisted",
           "expectedEvent": "before_message",
@@ -2537,1374 +2687,143 @@
           "id": "message_delivery_receipt_legacy",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-us"
           ],
           "trigger": "A real SDK client calls markAsDelivered (legacy webhook system)",
           "expectedEvent": "message_delivery_receipt",
           "automationMethod": "SDK",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "message_delivery_receipt (legacy) (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window. Shares its trigger name with the modern message_delivery_receipt webhook (see message.registry.ts) — the payload shape is not assumed to be identical and needs its own live capture once testable.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.messageId",
+            "data.receiptType",
+            "data.messageSender",
+            "data.receiptSender",
+            "data.receiptReceiver"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/message-delivery-receipt-legacy.spec.ts",
+          "testTitleMatch": "message_delivery_receipt (legacy) webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "message_read_receipt_legacy",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-us"
           ],
           "trigger": "A real SDK client calls markAsRead (legacy webhook system)",
           "expectedEvent": "message_read_receipt",
           "automationMethod": "SDK",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "message_read_receipt (legacy) (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window. Shares its trigger name with the modern message_read_receipt webhook (see message.registry.ts) — the payload shape is not assumed to be identical and needs its own live capture once testable.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.messageId",
+            "data.receiptType",
+            "data.messageSender",
+            "data.receiptSender",
+            "data.receiptReceiver"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/message-read-receipt-legacy.spec.ts",
+          "testTitleMatch": "message_read_receipt (legacy) webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         },
         {
           "id": "after_connection_status_changed",
           "category": "LEGACY",
           "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
+            "prod-us"
           ],
           "trigger": "A real SDK client connects/disconnects (legacy webhook system)",
           "expectedEvent": "after_connection_status_changed",
           "automationMethod": "SDK",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "after_connection_status_changed (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window.",
-          "runStatus": "NOT_IMPLEMENTED",
+          "expectedPayloadKeys": [
+            "data.user.uid",
+            "data.user.status",
+            "data.event.type"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/after-connection-status-changed.spec.ts",
+          "testTitleMatch": "after_connection_status_changed webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "email-notification-payload-generated",
+          "category": "NOTIFICATION",
+          "environments": [
+            "prod-us"
+          ],
+          "trigger": "Send a message to a recipient with the Custom Email Provider enabled (fires once per recipient; live-measured 61.8s after send)",
+          "expectedEvent": "email-notification-payload-generated",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.to.uid",
+            "data.messages",
+            "data.senderDetails",
+            "data.subject"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/notification/email-notification.spec.ts",
+          "testTitleMatch": "email-notification-payload-generated webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "sms-notification-payload-generated",
+          "category": "NOTIFICATION",
+          "environments": [
+            "prod-us"
+          ],
+          "trigger": "Send a message to a recipient with the Custom SMS Provider enabled (fires once per recipient; live-measured 60.4s after send)",
+          "expectedEvent": "sms-notification-payload-generated",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.to.uid",
+            "data.messages",
+            "data.senderDetails",
+            "data.smsContent"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/notification/sms-notification.spec.ts",
+          "testTitleMatch": "sms-notification-payload-generated webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "push-notification-payload-generated",
+          "category": "NOTIFICATION",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "Send a message to a recipient with the Custom Push Notification Provider enabled (also fires for calls/reactions/group actions — untested here)",
+          "expectedEvent": "push-notification-payload-generated",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.to.uid",
+            "data.notificationDetails.title",
+            "data.notificationDetails.body",
+            "data.notificationDetails.sender",
+            "data.notificationDetails.type"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/notification/push-notification.spec.ts",
+          "testTitleMatch": "push-notification-payload-generated webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
           "error": null
         }
       ]
     },
     "prod-in": {
       "environment": "prod-in",
-      "generatedAt": "2026-09-10T12:16:36.964Z",
+      "generatedAt": "2026-09-11T11:18:05.135Z",
       "counts": {
         "Total": 61,
-        "PASSED": 0,
-        "FAILED": 5,
+        "PASSED": 45,
+        "FAILED": 3,
         "SKIPPED": 0,
         "NOT_IMPLEMENTED": 8,
-        "BLOCKED": 8,
-        "OTHER": 40
-      },
-      "rows": [
-        {
-          "id": "group_created",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Create group",
-          "expectedEvent": "group_created",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.group.name",
-            "data.group.type",
-            "data.group.owner"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-created.spec.ts",
-          "testTitleMatch": "group_created webhook fires with correct guid, name, type and owner",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_updated",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Update group name",
-          "expectedEvent": "group_updated",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.group.name"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-updated.spec.ts",
-          "testTitleMatch": "group_updated webhook fires with the new name applied",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_deleted",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Delete group",
-          "expectedEvent": "group_deleted",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.group.guid"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-deleted.spec.ts",
-          "testTitleMatch": "group_deleted webhook fires for the deleted guid",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_member_added",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Add member to group (REST, on behalf of owner)",
-          "expectedEvent": "group_member_added",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.members",
-            "data.by"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-member-added.spec.ts",
-          "testTitleMatch": "group_member_added webhook fires with correct member and actor",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_member_kicked",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Remove group member",
-          "expectedEvent": "group_member_kicked",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.members",
-            "data.by"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-member-kicked.spec.ts",
-          "testTitleMatch": "group_member_kicked webhook fires with correct member and actor",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_member_banned",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Ban group member",
-          "expectedEvent": "group_member_banned",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.members",
-            "data.by"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-member-banned.spec.ts",
-          "testTitleMatch": "group_member_banned webhook fires with correct member and actor",
-          "reason": "AUTOMATED, but expect this test to report as an *expected* failure: confirmed live CometChat bug — when Ban Member is called with onBehalfOf, data.members incorrectly contains the actor's UID instead of the banned target's. Reproduced outside this suite too, so not a test artifact.",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_member_unbanned",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Unban group member",
-          "expectedEvent": "group_member_unbanned",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.members",
-            "data.by"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-member-unbanned.spec.ts",
-          "testTitleMatch": "group_member_unbanned webhook fires with correct member and actor",
-          "reason": "Same confirmed CometChat bug as group_member_banned above.",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_member_scope_changed",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Change a member's scope",
-          "expectedEvent": "group_member_scope_changed",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.members"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-member-scope-changed.spec.ts",
-          "testTitleMatch": "group_member_scope_changed webhook fires with old and new scope",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_owner_transferred",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Transfer group ownership",
-          "expectedEvent": "group_owner_transferred",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.group.owner",
-            "data.group.oldOwner"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-owner-transferred.spec.ts",
-          "testTitleMatch": "group_owner_transferred webhook fires with correct old and new owner",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_member_joined",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "A real SDK client self-joins a public group (no REST equivalent — verified live)",
-          "expectedEvent": "group_member_joined",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.group.owner",
-            "data.members"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-member-joined.spec.ts",
-          "testTitleMatch": "group_member_joined webhook fires when a user joins a public group themselves",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "group_member_left",
-          "category": "GROUP",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "A real SDK client self-leaves a group (no REST equivalent — verified live)",
-          "expectedEvent": "group_member_left",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.group.guid",
-            "data.members"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/group/group-member-left.spec.ts",
-          "testTitleMatch": "group_member_left webhook fires when a user leaves a group themselves",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_sent",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Send a text message",
-          "expectedEvent": "message_sent",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.message.id",
-            "data.message.sender",
-            "data.message.receiver",
-            "data.message.data.text"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/message-sent.spec.ts",
-          "testTitleMatch": "message_sent webhook fires when a text message is sent",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_edited",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Edit an existing message",
-          "expectedEvent": "message_edited",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.message.id",
-            "data.message.data.text"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/message-edited.spec.ts",
-          "testTitleMatch": "message_edited webhook fires when a message is edited, with the new text",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_deleted",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Delete a message",
-          "expectedEvent": "message_deleted",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.message.id"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/message-deleted.spec.ts",
-          "testTitleMatch": "message_deleted webhook fires when a message is deleted",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_reaction_added",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Add a reaction to a message",
-          "expectedEvent": "message_reaction_added",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.reaction.messageId",
-            "data.reaction.reaction",
-            "data.reaction.reactedBy"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/message-reaction-added.spec.ts",
-          "testTitleMatch": "message_reaction_added webhook fires with the correct emoji, message and reactor",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_reaction_removed",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Remove a reaction from a message",
-          "expectedEvent": "message_reaction_removed",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.reaction.messageId",
-            "data.reaction.reaction",
-            "data.reaction.reactedBy"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/message-reaction-removed.spec.ts",
-          "testTitleMatch": "message_reaction_removed webhook fires with the correct emoji, message and reactor",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "user_mentioned",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Send a message containing <@uid:...>",
-          "expectedEvent": "user_mentioned",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.message.id",
-            "data.message.data.mentions"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/user-mentioned.spec.ts",
-          "testTitleMatch": "user_mentioned webhook fires when a message mentions a user",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_delivery_receipt",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "A real SDK client calls markAsDelivered (no REST equivalent — verified live)",
-          "expectedEvent": "message_delivery_receipt",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.body.action",
-            "data.body.messageId",
-            "data.body.user.uid",
-            "data.sender",
-            "data.messageSender"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/message-delivery-receipt.spec.ts",
-          "testTitleMatch": "message_delivery_receipt webhook fires when a recipient client acknowledges delivery",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_read_receipt",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "A real SDK client calls markAsRead (no REST equivalent — verified live)",
-          "expectedEvent": "message_read_receipt",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.body.action",
-            "data.body.messageId",
-            "data.body.user.uid",
-            "data.sender",
-            "data.messageSender"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/message-read-receipt.spec.ts",
-          "testTitleMatch": "message_read_receipt webhook fires when a recipient client marks a message read",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_delivered_to_all",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Group message, sole other member marks it delivered (verified live: group-only, never fires in 1:1)",
-          "expectedEvent": "message_delivered_to_all",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.body.action",
-            "data.body.messageId",
-            "data.sender"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/message-delivered-to-all.spec.ts",
-          "testTitleMatch": "message_delivered_to_all webhook fires once every group member has received the message",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_read_by_all",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Group message, sole other member marks it read (verified live: group-only, never fires in 1:1)",
-          "expectedEvent": "message_read_by_all",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.body.action",
-            "data.body.messageId",
-            "data.sender"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/message/message-read-by-all.spec.ts",
-          "testTitleMatch": "message_read_by_all webhook fires once every group member has read the message",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_pinned",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Pin a message (requires the Pin Message extension)",
-          "expectedEvent": "message_pinned",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/message/message-gaps.spec.ts",
-          "testTitleMatch": "message_pinned (documented gap)",
-          "reason": "Live-probed 2026-09-04 against prod-eu: \"Pin Message\" exists as a catalog extension (GET /extensions/pin-message returns real metadata), but GET /extensions returns [] — the extension is NOT currently enabled on this app. Two guessed action-endpoint paths (POST /extensions/pin-message, POST /v1/pin) both 404 with ERR_API_NOT_FOUND, so the real pin/unpin endpoint is unconfirmed — CometChat's public docs only show it called via the JS SDK's CometChat.callExtension('pin-message', 'POST', 'v1/pin', ...), not a documented flat REST path. Also not listed in CometChat's own webhook trigger documentation at all. Needs: (1) Pin Message enabled in Dashboard -> Chat & Messaging -> Features on a target app, (2) the real REST/SDK call path confirmed (not guessed), (3) confirmation this actually fires a message_pinned webhook.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
-        },
-        {
-          "id": "message_unpinned",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Unpin a message (requires the Pin Message extension)",
-          "expectedEvent": "message_unpinned",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/message/message-gaps.spec.ts",
-          "testTitleMatch": "message_unpinned (documented gap)",
-          "reason": "Same root cause as message_pinned above.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
-        },
-        {
-          "id": "conversation_pinned",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Pin a conversation",
-          "expectedEvent": "conversation_pinned",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/message/message-gaps.spec.ts",
-          "testTitleMatch": "conversation_pinned (documented gap)",
-          "reason": "Searched CometChat's public docs and extension catalog 2026-09-04 — zero trace of this trigger or any REST/SDK endpoint for pinning a conversation (distinct from pinning a message). Not in the webhook events documentation, not a discoverable extension. Needs the exact trigger mechanism confirmed — likely only visible in the Dashboard's own webhook trigger checkboxes, which may be ahead of the public docs.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
-        },
-        {
-          "id": "conversation_unpinned",
-          "category": "MESSAGE",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Unpin a conversation",
-          "expectedEvent": "conversation_unpinned",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/message/message-gaps.spec.ts",
-          "testTitleMatch": "conversation_unpinned (documented gap)",
-          "reason": "Same root cause as conversation_pinned above.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
-        },
-        {
-          "id": "call_initiated",
-          "category": "CALLS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Chat SDK call signaling session",
-          "expectedEvent": "call_initiated",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.call.sender",
-            "data.call.receiver",
-            "data.call.data.action",
-            "data.call.data.entities.on.entity.sessionid"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/calls/call-initiated.spec.ts",
-          "testTitleMatch": "call_initiated webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "call_unanswered",
-          "category": "CALLS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Chat SDK call signaling session",
-          "expectedEvent": "call_unanswered",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.call.sender",
-            "data.call.receiver",
-            "data.call.data.action",
-            "data.call.data.entities.on.entity.sessionid"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/calls/call-unanswered.spec.ts",
-          "testTitleMatch": "call_unanswered webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "call_cancelled",
-          "category": "CALLS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Chat SDK call signaling session",
-          "expectedEvent": "call_cancelled",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.call.sender",
-            "data.call.receiver",
-            "data.call.data.action",
-            "data.call.data.entities.on.entity.sessionid"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/calls/call-cancelled.spec.ts",
-          "testTitleMatch": "call_cancelled webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "call_rejected",
-          "category": "CALLS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Chat SDK call signaling session",
-          "expectedEvent": "call_rejected",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.call.sender",
-            "data.call.receiver",
-            "data.call.data.action",
-            "data.call.data.entities.on.entity.sessionid"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/calls/call-rejected.spec.ts",
-          "testTitleMatch": "call_rejected webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "call_busy",
-          "category": "CALLS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Chat SDK call signaling session",
-          "expectedEvent": "call_busy",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.call.sender",
-            "data.call.receiver",
-            "data.call.data.action",
-            "data.call.data.entities.on.entity.sessionid"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/calls/call-busy.spec.ts",
-          "testTitleMatch": "call_busy webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "call_started",
-          "category": "CALLS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
-          "expectedEvent": "call_started",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.sessionId"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/calls/call-started.spec.ts",
-          "testTitleMatch": "call_started webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "call_participant_joined",
-          "category": "CALLS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
-          "expectedEvent": "call_participant_joined",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.sessionId"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/calls/call-participant-joined.spec.ts",
-          "testTitleMatch": "call_participant_joined webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "call_participant_left",
-          "category": "CALLS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
-          "expectedEvent": "call_participant_left",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.sessionId"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/calls/call-participant-left.spec.ts",
-          "testTitleMatch": "call_participant_left webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "call_ended",
-          "category": "CALLS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
-          "expectedEvent": "call_ended",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.sessionId"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/calls/call-ended.spec.ts",
-          "testTitleMatch": "call_ended webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "meeting_started",
-          "category": "MEETINGS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
-          "expectedEvent": "meeting_started",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.sessionId"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/meetings/meeting-started.spec.ts",
-          "testTitleMatch": "meeting_started webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "meeting_participant_joined",
-          "category": "MEETINGS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
-          "expectedEvent": "meeting_participant_joined",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.sessionId"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/meetings/meeting-participant-joined.spec.ts",
-          "testTitleMatch": "meeting_participant_joined webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "meeting_participant_left",
-          "category": "MEETINGS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
-          "expectedEvent": "meeting_participant_left",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.sessionId"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/meetings/meeting-participant-left.spec.ts",
-          "testTitleMatch": "meeting_participant_left webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "meeting_ended",
-          "category": "MEETINGS",
-          "environments": [
-            "prod-eu",
-            "prod-us",
-            "prod-in"
-          ],
-          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
-          "expectedEvent": "meeting_ended",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.sessionId"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/meetings/meeting-ended.spec.ts",
-          "testTitleMatch": "meeting_ended webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "recording_generated",
-          "category": "MEETINGS",
-          "environments": [],
-          "trigger": "Recording/transcription generated for a Calls or Meetings session",
-          "expectedEvent": "recording_generated",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/meetings/meetings.spec.ts",
-          "testTitleMatch": "recording_generated (documented gap)",
-          "reason": "Requires recording actually enabled for the session (autoStartRecording, or an app-level recording feature) — not yet confirmed whether that's on for any of the 4 apps, and this is async (real processing delay after the session ends before the recording is ready), unlike every other Meetings/Calls trigger.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "transcription_generated",
-          "category": "MEETINGS",
-          "environments": [],
-          "trigger": "Recording/transcription generated for a Calls or Meetings session",
-          "expectedEvent": "transcription_generated",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/meetings/meetings.spec.ts",
-          "testTitleMatch": "transcription_generated (documented gap)",
-          "reason": "Voice transcription is a separate paid extension (Rev.ai-backed), not a built-in Calls/Meetings SDK feature — needs its own Rev.ai account and Dashboard configuration, which is not confirmed to exist on any of the 4 apps. Not something more research or live probing from this project can resolve on its own.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_notification_created",
-          "category": "CAMPAIGN",
-          "environments": [
-            "prod-eu",
-            "prod-us"
-          ],
-          "trigger": "POST /campaigns/notifications/messages (real Campaigns REST send)",
-          "expectedEvent": "after_notification_created",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.notificationId",
-            "data.templateId",
-            "data.channels",
-            "data.sendMode"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/campaign/after-notification-created.spec.ts",
-          "testTitleMatch": "after_notification_created webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: Timed out waiting for webhook event \"after_notification_created\" after 10000ms.\nEvents actually received in this window:\n  (no webhook events of any kind arrived in this window)"
-        },
-        {
-          "id": "after_feed_item_sent",
-          "category": "CAMPAIGN",
-          "environments": [
-            "prod-eu",
-            "prod-us"
-          ],
-          "trigger": "POST /campaigns/notifications/messages, in_app channel",
-          "expectedEvent": "after_feed_item_sent",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.id",
-            "data.notificationId",
-            "data.receiver",
-            "data.status"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/campaign/after-feed-item-sent.spec.ts",
-          "testTitleMatch": "after_feed_item_sent webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: Timed out waiting for webhook event \"after_feed_item_sent\" after 10000ms.\nEvents actually received in this window:\n  (no webhook events of any kind arrived in this window)"
-        },
-        {
-          "id": "after_feed_item_delivered",
-          "category": "CAMPAIGN",
-          "environments": [
-            "prod-eu",
-            "prod-us"
-          ],
-          "trigger": "POST /campaigns/notification-feed/{id}/read — delivered is set implicitly, not a separate action",
-          "expectedEvent": "after_feed_item_delivered",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.id",
-            "data.notificationId",
-            "data.receiver",
-            "data.status"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/campaign/after-feed-item-delivered.spec.ts",
-          "testTitleMatch": "after_feed_item_delivered webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: Timed out waiting for webhook event \"after_feed_item_sent\" after 10000ms.\nEvents actually received in this window:\n  (no webhook events of any kind arrived in this window)"
-        },
-        {
-          "id": "after_feed_item_read",
-          "category": "CAMPAIGN",
-          "environments": [
-            "prod-eu",
-            "prod-us"
-          ],
-          "trigger": "POST /campaigns/notification-feed/{id}/read",
-          "expectedEvent": "after_feed_item_read",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.id",
-            "data.notificationId",
-            "data.receiver",
-            "data.status"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/campaign/after-feed-item-read.spec.ts",
-          "testTitleMatch": "after_feed_item_read webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: Timed out waiting for webhook event \"after_feed_item_sent\" after 10000ms.\nEvents actually received in this window:\n  (no webhook events of any kind arrived in this window)"
-        },
-        {
-          "id": "after_campaign_completed",
-          "category": "CAMPAIGN",
-          "environments": [
-            "prod-eu",
-            "prod-us"
-          ],
-          "trigger": "POST /campaigns/campaigns + /recipients + /send",
-          "expectedEvent": "after_campaign_completed",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.campaignId",
-            "data.status",
-            "data.sentCount"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/campaign/after-campaign-completed.spec.ts",
-          "testTitleMatch": "after_campaign_completed webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: Timed out waiting for webhook event \"after_campaign_completed\" after 10000ms.\nEvents actually received in this window:\n  (no webhook events of any kind arrived in this window)"
-        },
-        {
-          "id": "after_campaign_failed",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_campaign_failed",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_campaign_failed (documented gap)",
-          "reason": "No reliable way found to trigger a genuine campaign failure — confirmed live 2026-09-10: adding a nonexistent/invalid user ID as the sole recipient and sending still produces after_campaign_completed (CometChat does not appear to validate recipient existence before considering the send complete). Would need a real, distinct failure condition (e.g. a since-deleted channel) that has not been identified yet.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_feed_item_interacted",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_feed_item_interacted",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_feed_item_interacted (documented gap)",
-          "reason": "No REST endpoint found for marking a feed item \"interacted\" (checked the documented Notification Feed REST surface and several plausible undocumented paths — /engage, /interact, /click, /clicked, /interacted, /engaged all 404). The payload has an engagedAt field, suggesting this is client SDK-tracked (a real tap/click in the notification feed UI), not an admin-triggerable REST action — same class of gap as message read/delivery receipts before sdk.client.ts.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_push_notification_sent",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_push_notification_sent",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_push_notification_sent (documented gap)",
-          "reason": "Needs a push channel (Campaigns supports at most 1 per app) with real FCM/APNs credentials configured, which is not confirmed to exist on any of the 4 apps — push notification config is managed at the CometChat app level, not something this project can set up via REST.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_push_notification_delivered",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_push_notification_delivered",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_push_notification_delivered (documented gap)",
-          "reason": "Same push-channel/FCM/APNs prerequisite as after_push_notification_sent, plus a real registered device to deliver to.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_push_notification_clicked",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_push_notification_clicked",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_push_notification_clicked (documented gap)",
-          "reason": "Same prerequisites as after_push_notification_delivered, plus a real user interaction on a real device — no REST equivalent exists for this by nature.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "user_blocked",
-          "category": "USER",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Block a user",
-          "expectedEvent": "user_blocked",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.by",
-            "data.users"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/user/user-blocked.spec.ts",
-          "testTitleMatch": "user_blocked webhook fires with the correct blocker and blocked user",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "user_unblocked",
-          "category": "USER",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Unblock a user",
-          "expectedEvent": "user_unblocked",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.by",
-            "data.users"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/user/user-unblocked.spec.ts",
-          "testTitleMatch": "user_unblocked webhook fires with the correct unblocker and unblocked user",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "user_connection_status_changed",
-          "category": "USER",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "A real SDK client connects/disconnects (no REST equivalent)",
-          "expectedEvent": "user_connection_status_changed",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [
-            "data.status",
-            "data.user.uid",
-            "data.currentConnection.action"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/user/user-connection-status-changed.spec.ts",
-          "testTitleMatch": "user_connection_status_changed webhook fires when a client disconnects",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "moderation_engine_blocked",
-          "category": "MODERATION",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Send message content matching the Profanity filter rule",
-          "expectedEvent": "moderation_engine_blocked",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.message.id",
-            "data.message.data.moderation.status",
-            "data.message.data.moderation.rule.id",
-            "data.moderation"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/moderation/moderation-engine-blocked.spec.ts",
-          "testTitleMatch": "moderation_engine_blocked webhook fires when a message matches the Profanity filter",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "moderation_engine_approved",
-          "category": "MODERATION",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Send ordinary message content that clears moderation checks",
-          "expectedEvent": "moderation_engine_approved",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.message.id",
-            "data.message.data.moderation.status"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/moderation/moderation-engine-approved.spec.ts",
-          "testTitleMatch": "moderation_engine_approved webhook fires when a clean message clears moderation",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "moderation_manual_approved",
-          "category": "MODERATION",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "A human admin manually approves flagged content in the Dashboard",
-          "expectedEvent": "moderation_manual_approved",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/moderation/moderation.spec.ts",
-          "testTitleMatch": "moderation_manual_approved (documented gap)",
-          "reason": "No REST or SDK equivalent exists for a human manually approving a flagged item — Dashboard-only action.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_message",
-          "category": "LEGACY",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "Send a text message (legacy webhook system)",
-          "expectedEvent": "after_message",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "after_message (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
-        },
-        {
-          "id": "before_message",
-          "category": "LEGACY",
-          "environments": [
-            "prod-eu"
-          ],
-          "trigger": "Send a text message (legacy webhook system) — fires synchronously BEFORE the message is persisted",
-          "expectedEvent": "before_message",
-          "automationMethod": "REST",
-          "expectedPayloadKeys": [
-            "data.sender",
-            "data.receiver",
-            "data.data.text",
-            "data.data.entities.sender.entity.uid"
-          ],
-          "status": "AUTOMATED",
-          "specFile": "src/tests/legacy/before-message.spec.ts",
-          "testTitleMatch": "before_message webhook fires",
-          "runStatus": "AUTOMATED (not in last run)",
-          "error": null
-        },
-        {
-          "id": "message_delivery_receipt_legacy",
-          "category": "LEGACY",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "A real SDK client calls markAsDelivered (legacy webhook system)",
-          "expectedEvent": "message_delivery_receipt",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "message_delivery_receipt (legacy) (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window. Shares its trigger name with the modern message_delivery_receipt webhook (see message.registry.ts) — the payload shape is not assumed to be identical and needs its own live capture once testable.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
-        },
-        {
-          "id": "message_read_receipt_legacy",
-          "category": "LEGACY",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "A real SDK client calls markAsRead (legacy webhook system)",
-          "expectedEvent": "message_read_receipt",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "message_read_receipt (legacy) (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window. Shares its trigger name with the modern message_read_receipt webhook (see message.registry.ts) — the payload shape is not assumed to be identical and needs its own live capture once testable.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
-        },
-        {
-          "id": "after_connection_status_changed",
-          "category": "LEGACY",
-          "environments": [
-            "staging-us",
-            "prod-us",
-            "prod-eu",
-            "prod-in"
-          ],
-          "trigger": "A real SDK client connects/disconnects (legacy webhook system)",
-          "expectedEvent": "after_connection_status_changed",
-          "automationMethod": "SDK",
-          "expectedPayloadKeys": [],
-          "status": "NOT_IMPLEMENTED",
-          "specFile": "src/tests/legacy/legacy.spec.ts",
-          "testTitleMatch": "after_connection_status_changed (documented gap)",
-          "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window.",
-          "runStatus": "NOT_IMPLEMENTED",
-          "error": null
-        }
-      ]
-    },
-    "staging-us": {
-      "environment": "staging-us",
-      "generatedAt": "2026-09-10T12:31:46.072Z",
-      "counts": {
-        "Total": 61,
-        "PASSED": 27,
-        "FAILED": 17,
-        "SKIPPED": 0,
-        "NOT_IMPLEMENTED": 8,
-        "BLOCKED": 8,
+        "BLOCKED": 4,
         "OTHER": 1
       },
       "rows": [
@@ -4180,8 +3099,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-sent.spec.ts",
           "testTitleMatch": "message_sent webhook fires when a text message is sent",
-          "runStatus": "FAILED",
-          "error": "Error: Timed out waiting for webhook event \"message_sent\" after 10000ms.\nEvents actually received in this window:\n  - moderation_engine_approved at 2026-09-10T12:30:59.987Z (event id: 131f3349-196b-4be8-9c32-0566999138c4)\n  - message_sent at 2026-09-10T12:31:00.096Z (event id: 3327eff6-71d3-475c-90d8-734ac1538042)\n  - moderation_engine_approved at 2026-09-10T12:31:00.387Z (event id: ecd700e8-912c-440c-bf15-74f8a7412802)\n  - moderation_engine_approved at 2026-09-10T12:31:06.842Z (event id: 96d702d3-df9c-4571-850f-02075f9b44dc)\n  - message_sent at 2026-09-10T12:31:07.466Z (event id: 6768b55b-fbfa-4722-aa7c-9f8628d28f47)"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "message_edited",
@@ -4202,8 +3121,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-edited.spec.ts",
           "testTitleMatch": "message_edited webhook fires when a message is edited, with the new text",
-          "runStatus": "FAILED",
-          "error": "Error: PUT /messages/8331 failed: 403 {\"error\":{\"message\":\"The user with UID cometchat-uid-1 does not have access to the message with id 8331.\",\"devMessage\":\"The user with UID cometchat-uid-1 does not have access to a message with id 8331.\",\"source\":\"chat-api\",\"code\":\"ERR_MESSAGE_NO_ACCESS\"}}"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "message_deleted",
@@ -4223,8 +3142,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-deleted.spec.ts",
           "testTitleMatch": "message_deleted webhook fires when a message is deleted",
-          "runStatus": "FAILED",
-          "error": "Error: DELETE /messages/8327 failed: 403 {\"error\":{\"message\":\"The user with UID cometchat-uid-1 does not have access to the message with id 8327.\",\"devMessage\":\"The user with UID cometchat-uid-1 does not have access to a message with id 8327.\",\"source\":\"chat-api\",\"code\":\"ERR_MESSAGE_NO_ACCESS\"}}"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "message_reaction_added",
@@ -4246,8 +3165,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-reaction-added.spec.ts",
           "testTitleMatch": "message_reaction_added webhook fires with the correct emoji, message and reactor",
-          "runStatus": "FAILED",
-          "error": "Error: POST /messages/8332/reactions/%F0%9F%91%8D failed: 403 {\"error\":{\"message\":\"The user with UID cometchat-uid-2 does not have access to the message with id 8332.\",\"devMessage\":\"The user with UID cometchat-uid-2 does not have access to a message with id 8332.\",\"source\":\"chat-api\",\"code\":\"ERR_MESSAGE_NO_ACCESS\"}}"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "message_reaction_removed",
@@ -4269,8 +3188,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/message-reaction-removed.spec.ts",
           "testTitleMatch": "message_reaction_removed webhook fires with the correct emoji, message and reactor",
-          "runStatus": "FAILED",
-          "error": "Error: POST /messages/8333/reactions/%F0%9F%8E%89 failed: 403 {\"error\":{\"message\":\"The user with UID cometchat-uid-2 does not have access to the message with id 8333.\",\"devMessage\":\"The user with UID cometchat-uid-2 does not have access to a message with id 8333.\",\"source\":\"chat-api\",\"code\":\"ERR_MESSAGE_NO_ACCESS\"}}"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "user_mentioned",
@@ -4291,8 +3210,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/message/user-mentioned.spec.ts",
           "testTitleMatch": "user_mentioned webhook fires when a message mentions a user",
-          "runStatus": "FAILED",
-          "error": "Error: Timed out waiting for webhook event \"user_mentioned\" after 10000ms.\nEvents actually received in this window:\n  - moderation_engine_blocked at 2026-09-10T12:31:12.397Z (event id: 53f48cce-08d9-4156-9fd3-ee3d82cd2ec6)"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "message_delivery_receipt",
@@ -4582,8 +3501,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-busy.spec.ts",
           "testTitleMatch": "call_busy webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: page.evaluate: o"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "call_started",
@@ -4602,8 +3521,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-started.spec.ts",
           "testTitleMatch": "call_started webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: page.evaluate: o"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "call_participant_joined",
@@ -4622,8 +3541,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-participant-joined.spec.ts",
           "testTitleMatch": "call_participant_joined webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: page.evaluate: o"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "call_participant_left",
@@ -4642,8 +3561,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/calls/call-participant-left.spec.ts",
           "testTitleMatch": "call_participant_left webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: page.evaluate: o"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "call_ended",
@@ -4663,7 +3582,7 @@
           "specFile": "src/tests/calls/call-ended.spec.ts",
           "testTitleMatch": "call_ended webhook fires",
           "runStatus": "FAILED",
-          "error": "Error: page.evaluate: o"
+          "error": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
         },
         {
           "id": "meeting_started",
@@ -4682,8 +3601,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/meetings/meeting-started.spec.ts",
           "testTitleMatch": "meeting_started webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: page.evaluate: o"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "meeting_participant_joined",
@@ -4702,8 +3621,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/meetings/meeting-participant-joined.spec.ts",
           "testTitleMatch": "meeting_participant_joined webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: page.evaluate: o"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "meeting_participant_left",
@@ -4722,8 +3641,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/meetings/meeting-participant-left.spec.ts",
           "testTitleMatch": "meeting_participant_left webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: page.evaluate: o"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "meeting_ended",
@@ -4742,8 +3661,8 @@
           "status": "AUTOMATED",
           "specFile": "src/tests/meetings/meeting-ended.spec.ts",
           "testTitleMatch": "meeting_ended webhook fires",
-          "runStatus": "FAILED",
-          "error": "Error: page.evaluate: o"
+          "runStatus": "PASSED",
+          "error": null
         },
         {
           "id": "recording_generated",
@@ -4885,6 +3804,95 @@
           "error": null
         },
         {
+          "id": "after_feed_item_interacted",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "CometChat.reportFeedEngagement via a real connected SDK session — no REST endpoint exists for this",
+          "expectedEvent": "after_feed_item_interacted",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.notificationId",
+            "data.receiver",
+            "data.engagedAt",
+            "data.topic"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-feed-item-interacted.spec.ts",
+          "testTitleMatch": "after_feed_item_interacted webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
+          "id": "after_push_notification_sent",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notifications/messages, push channel — fires on dispatch attempt, no real FCM/APNs credentials required",
+          "expectedEvent": "after_push_notification_sent",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.pushNotificationId",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-push-notification-sent.spec.ts",
+          "testTitleMatch": "after_push_notification_sent webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
+          "id": "after_push_notification_delivered",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "CometChat.markPushNotificationDelivered via a real connected SDK session — client-reported, no real device required",
+          "expectedEvent": "after_push_notification_delivered",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.pushNotificationId",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-push-notification-delivered.spec.ts",
+          "testTitleMatch": "after_push_notification_delivered webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
+          "id": "after_push_notification_clicked",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "CometChat.markPushNotificationClicked via a real connected SDK session — client-reported, no real device required",
+          "expectedEvent": "after_push_notification_clicked",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.pushNotificationId",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-push-notification-clicked.spec.ts",
+          "testTitleMatch": "after_push_notification_clicked webhook fires",
+          "runStatus": "PASSED",
+          "error": null
+        },
+        {
           "id": "after_campaign_failed",
           "category": "CAMPAIGN",
           "environments": [],
@@ -4896,66 +3904,6 @@
           "specFile": "src/tests/campaign/campaign.spec.ts",
           "testTitleMatch": "after_campaign_failed (documented gap)",
           "reason": "No reliable way found to trigger a genuine campaign failure — confirmed live 2026-09-10: adding a nonexistent/invalid user ID as the sole recipient and sending still produces after_campaign_completed (CometChat does not appear to validate recipient existence before considering the send complete). Would need a real, distinct failure condition (e.g. a since-deleted channel) that has not been identified yet.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_feed_item_interacted",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_feed_item_interacted",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_feed_item_interacted (documented gap)",
-          "reason": "No REST endpoint found for marking a feed item \"interacted\" (checked the documented Notification Feed REST surface and several plausible undocumented paths — /engage, /interact, /click, /clicked, /interacted, /engaged all 404). The payload has an engagedAt field, suggesting this is client SDK-tracked (a real tap/click in the notification feed UI), not an admin-triggerable REST action — same class of gap as message read/delivery receipts before sdk.client.ts.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_push_notification_sent",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_push_notification_sent",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_push_notification_sent (documented gap)",
-          "reason": "Needs a push channel (Campaigns supports at most 1 per app) with real FCM/APNs credentials configured, which is not confirmed to exist on any of the 4 apps — push notification config is managed at the CometChat app level, not something this project can set up via REST.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_push_notification_delivered",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_push_notification_delivered",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_push_notification_delivered (documented gap)",
-          "reason": "Same push-channel/FCM/APNs prerequisite as after_push_notification_sent, plus a real registered device to deliver to.",
-          "runStatus": "BLOCKED",
-          "error": null
-        },
-        {
-          "id": "after_push_notification_clicked",
-          "category": "CAMPAIGN",
-          "environments": [],
-          "trigger": "Real Campaigns/Notifications module action",
-          "expectedEvent": "after_push_notification_clicked",
-          "automationMethod": "NONE",
-          "expectedPayloadKeys": [],
-          "status": "BLOCKED",
-          "specFile": "src/tests/campaign/campaign.spec.ts",
-          "testTitleMatch": "after_push_notification_clicked (documented gap)",
-          "reason": "Same prerequisites as after_push_notification_delivered, plus a real user interaction on a real device — no REST equivalent exists for this by nature.",
           "runStatus": "BLOCKED",
           "error": null
         },
@@ -5048,7 +3996,7 @@
           "specFile": "src/tests/moderation/moderation-engine-blocked.spec.ts",
           "testTitleMatch": "moderation_engine_blocked webhook fires when a message matches the Profanity filter",
           "runStatus": "FAILED",
-          "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"profanity-filter\"\u001b[39m\nReceived: \u001b[31m\"spam-scam\"\u001b[39m"
+          "error": "Error: Timed out waiting for webhook event \"moderation_engine_blocked\" after 10000ms.\nEvents actually received in this window:\n  - message_sent at 2026-09-11T11:17:45.798Z (event id: 253d5ee4-4adc-4bb7-bb36-8f35e628a442)"
         },
         {
           "id": "moderation_engine_approved",
@@ -5070,7 +4018,7 @@
           "specFile": "src/tests/moderation/moderation-engine-approved.spec.ts",
           "testTitleMatch": "moderation_engine_approved webhook fires when a clean message clears moderation",
           "runStatus": "FAILED",
-          "error": "Error: Timed out waiting for webhook event \"moderation_engine_approved\" after 10000ms.\nEvents actually received in this window:\n  (no webhook events of any kind arrived in this window)"
+          "error": "Error: Timed out waiting for webhook event \"moderation_engine_approved\" after 10000ms.\nEvents actually received in this window:\n  - message_sent at 2026-09-11T11:17:34.921Z (event id: 347f0c02-ade6-4daf-bdf2-82dbb28fab9b)"
         },
         {
           "id": "moderation_manual_approved",
@@ -5191,6 +4139,1403 @@
           "testTitleMatch": "after_connection_status_changed (documented gap)",
           "reason": "Legacy and modern webhooks are mutually exclusive per app — activating legacy on any of staging-us/prod-us/prod-eu/prod-in would disable the modern webhook config the existing 26 automated tests depend on, so this has not been switched on anywhere yet. Needs either a dedicated app for legacy-only testing, or an explicit, deliberate toggle + revert on a shared app for a scoped test window.",
           "runStatus": "NOT_IMPLEMENTED",
+          "error": null
+        }
+      ]
+    },
+    "staging-us": {
+      "environment": "staging-us",
+      "generatedAt": "2026-09-15T10:03:52.474Z",
+      "counts": {
+        "Total": 64,
+        "PASSED": 0,
+        "FAILED": 0,
+        "SKIPPED": 0,
+        "NOT_IMPLEMENTED": 4,
+        "BLOCKED": 5,
+        "OTHER": 55
+      },
+      "rows": [
+        {
+          "id": "group_created",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Create group",
+          "expectedEvent": "group_created",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.group.name",
+            "data.group.type",
+            "data.group.owner"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-created.spec.ts",
+          "testTitleMatch": "group_created webhook fires with correct guid, name, type and owner",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_updated",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Update group name",
+          "expectedEvent": "group_updated",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.group.name"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-updated.spec.ts",
+          "testTitleMatch": "group_updated webhook fires with the new name applied",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_deleted",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Delete group",
+          "expectedEvent": "group_deleted",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.group.guid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-deleted.spec.ts",
+          "testTitleMatch": "group_deleted webhook fires for the deleted guid",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_member_added",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Add member to group (REST, on behalf of owner)",
+          "expectedEvent": "group_member_added",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.members",
+            "data.by"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-member-added.spec.ts",
+          "testTitleMatch": "group_member_added webhook fires with correct member and actor",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_member_kicked",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Remove group member",
+          "expectedEvent": "group_member_kicked",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.members",
+            "data.by"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-member-kicked.spec.ts",
+          "testTitleMatch": "group_member_kicked webhook fires with correct member and actor",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_member_banned",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Ban group member",
+          "expectedEvent": "group_member_banned",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.members",
+            "data.by"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-member-banned.spec.ts",
+          "testTitleMatch": "group_member_banned webhook fires with correct member and actor",
+          "reason": "AUTOMATED, but expect this test to report as an *expected* failure: confirmed live CometChat bug — when Ban Member is called with onBehalfOf, data.members incorrectly contains the actor's UID instead of the banned target's. Reproduced outside this suite too, so not a test artifact.",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_member_unbanned",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Unban group member",
+          "expectedEvent": "group_member_unbanned",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.members",
+            "data.by"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-member-unbanned.spec.ts",
+          "testTitleMatch": "group_member_unbanned webhook fires with correct member and actor",
+          "reason": "Same confirmed CometChat bug as group_member_banned above.",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_member_scope_changed",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Change a member's scope",
+          "expectedEvent": "group_member_scope_changed",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.members"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-member-scope-changed.spec.ts",
+          "testTitleMatch": "group_member_scope_changed webhook fires with old and new scope",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_owner_transferred",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Transfer group ownership",
+          "expectedEvent": "group_owner_transferred",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.group.owner",
+            "data.group.oldOwner"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-owner-transferred.spec.ts",
+          "testTitleMatch": "group_owner_transferred webhook fires with correct old and new owner",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_member_joined",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "A real SDK client self-joins a public group (no REST equivalent — verified live)",
+          "expectedEvent": "group_member_joined",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.group.owner",
+            "data.members"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-member-joined.spec.ts",
+          "testTitleMatch": "group_member_joined webhook fires when a user joins a public group themselves",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "group_member_left",
+          "category": "GROUP",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "A real SDK client self-leaves a group (no REST equivalent — verified live)",
+          "expectedEvent": "group_member_left",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.group.guid",
+            "data.members"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/group/group-member-left.spec.ts",
+          "testTitleMatch": "group_member_left webhook fires when a user leaves a group themselves",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_sent",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Send a text message",
+          "expectedEvent": "message_sent",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.sender",
+            "data.message.receiver",
+            "data.message.data.text"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-sent.spec.ts",
+          "testTitleMatch": "message_sent webhook fires when a text message is sent",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_edited",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Edit an existing message",
+          "expectedEvent": "message_edited",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.data.text"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-edited.spec.ts",
+          "testTitleMatch": "message_edited webhook fires when a message is edited, with the new text",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_deleted",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Delete a message",
+          "expectedEvent": "message_deleted",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.message.id"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-deleted.spec.ts",
+          "testTitleMatch": "message_deleted webhook fires when a message is deleted",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_reaction_added",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Add a reaction to a message",
+          "expectedEvent": "message_reaction_added",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.reaction.messageId",
+            "data.reaction.reaction",
+            "data.reaction.reactedBy"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-reaction-added.spec.ts",
+          "testTitleMatch": "message_reaction_added webhook fires with the correct emoji, message and reactor",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_reaction_removed",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Remove a reaction from a message",
+          "expectedEvent": "message_reaction_removed",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.reaction.messageId",
+            "data.reaction.reaction",
+            "data.reaction.reactedBy"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-reaction-removed.spec.ts",
+          "testTitleMatch": "message_reaction_removed webhook fires with the correct emoji, message and reactor",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "user_mentioned",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Send a message containing <@uid:...>",
+          "expectedEvent": "user_mentioned",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.data.mentions"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/user-mentioned.spec.ts",
+          "testTitleMatch": "user_mentioned webhook fires when a message mentions a user",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_delivery_receipt",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "A real SDK client calls markAsDelivered (no REST equivalent — verified live)",
+          "expectedEvent": "message_delivery_receipt",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.body.action",
+            "data.body.messageId",
+            "data.body.user.uid",
+            "data.sender",
+            "data.messageSender"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-delivery-receipt.spec.ts",
+          "testTitleMatch": "message_delivery_receipt webhook fires when a recipient client acknowledges delivery",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_read_receipt",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "A real SDK client calls markAsRead (no REST equivalent — verified live)",
+          "expectedEvent": "message_read_receipt",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.body.action",
+            "data.body.messageId",
+            "data.body.user.uid",
+            "data.sender",
+            "data.messageSender"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-read-receipt.spec.ts",
+          "testTitleMatch": "message_read_receipt webhook fires when a recipient client marks a message read",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_delivered_to_all",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Group message, sole other member marks it delivered (verified live: group-only, never fires in 1:1)",
+          "expectedEvent": "message_delivered_to_all",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.body.action",
+            "data.body.messageId",
+            "data.sender"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-delivered-to-all.spec.ts",
+          "testTitleMatch": "message_delivered_to_all webhook fires once every group member has received the message",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_read_by_all",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Group message, sole other member marks it read (verified live: group-only, never fires in 1:1)",
+          "expectedEvent": "message_read_by_all",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.body.action",
+            "data.body.messageId",
+            "data.sender"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-read-by-all.spec.ts",
+          "testTitleMatch": "message_read_by_all webhook fires once every group member has read the message",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_pinned",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "POST /messages/{id}/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/messages/pin-message)",
+          "expectedEvent": "message_pinned",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.pinnedBy",
+            "data.message.pinnedAt"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-pinned.spec.ts",
+          "testTitleMatch": "message_pinned webhook fires when a message is pinned",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_unpinned",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "DELETE /messages/{id}/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/messages/unpin-message)",
+          "expectedEvent": "message_unpinned",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.unpinnedBy",
+            "data.message.unpinnedAt"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/message/message-unpinned.spec.ts",
+          "testTitleMatch": "message_unpinned webhook fires when a message is unpinned",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "conversation_pinned",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "POST /users/{uid}/conversation/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/conversations/pin-user-conversation)",
+          "expectedEvent": "conversation_pinned",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [],
+          "status": "NOT_IMPLEMENTED",
+          "specFile": "src/tests/message/message-gaps.spec.ts",
+          "testTitleMatch": "conversation_pinned (documented gap)",
+          "reason": "UPDATE 2026-09-12 (supersedes the 2026-09-04 \"no endpoint exists\" finding — CometChat added REST conversation pinning since then): live-probed against staging-us — POST /users/{uid}/conversation/pin succeeds (200, real pinnedBy/pinnedAt in the response), but no conversation_pinned webhook arrived within 15s. Same pattern seen before with Group and Moderation triggers: the underlying feature works over REST, but the specific webhook trigger checkbox is very likely unchecked in this app's Dashboard webhook config. Needs a Dashboard check (Webhooks -> Message category -> confirm conversation_pinned is individually enabled, not just the category), then re-probe — the client/trigger side is otherwise ready to wire up immediately once the webhook itself fires.",
+          "runStatus": "NOT_IMPLEMENTED",
+          "error": null
+        },
+        {
+          "id": "conversation_unpinned",
+          "category": "MESSAGE",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "DELETE /users/{uid}/conversation/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/conversations/unpin-user-conversation)",
+          "expectedEvent": "conversation_unpinned",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [],
+          "status": "NOT_IMPLEMENTED",
+          "specFile": "src/tests/message/message-gaps.spec.ts",
+          "testTitleMatch": "conversation_unpinned (documented gap)",
+          "reason": "Same root cause as conversation_pinned above — live-probed together 2026-09-12, same result (REST succeeds, webhook silent).",
+          "runStatus": "NOT_IMPLEMENTED",
+          "error": null
+        },
+        {
+          "id": "call_initiated",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Chat SDK call signaling session",
+          "expectedEvent": "call_initiated",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.call.sender",
+            "data.call.receiver",
+            "data.call.data.action",
+            "data.call.data.entities.on.entity.sessionid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-initiated.spec.ts",
+          "testTitleMatch": "call_initiated webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "call_unanswered",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Chat SDK call signaling session",
+          "expectedEvent": "call_unanswered",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.call.sender",
+            "data.call.receiver",
+            "data.call.data.action",
+            "data.call.data.entities.on.entity.sessionid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-unanswered.spec.ts",
+          "testTitleMatch": "call_unanswered webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "call_cancelled",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Chat SDK call signaling session",
+          "expectedEvent": "call_cancelled",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.call.sender",
+            "data.call.receiver",
+            "data.call.data.action",
+            "data.call.data.entities.on.entity.sessionid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-cancelled.spec.ts",
+          "testTitleMatch": "call_cancelled webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "call_rejected",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Chat SDK call signaling session",
+          "expectedEvent": "call_rejected",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.call.sender",
+            "data.call.receiver",
+            "data.call.data.action",
+            "data.call.data.entities.on.entity.sessionid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-rejected.spec.ts",
+          "testTitleMatch": "call_rejected webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "call_busy",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Chat SDK call signaling session",
+          "expectedEvent": "call_busy",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.call.sender",
+            "data.call.receiver",
+            "data.call.data.action",
+            "data.call.data.entities.on.entity.sessionid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-busy.spec.ts",
+          "testTitleMatch": "call_busy webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "call_started",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
+          "expectedEvent": "call_started",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-started.spec.ts",
+          "testTitleMatch": "call_started webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "call_participant_joined",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
+          "expectedEvent": "call_participant_joined",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-participant-joined.spec.ts",
+          "testTitleMatch": "call_participant_joined webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "call_participant_left",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
+          "expectedEvent": "call_participant_left",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-participant-left.spec.ts",
+          "testTitleMatch": "call_participant_left webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "call_ended",
+          "category": "CALLS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK WebRTC session join (@cometchat/calls-sdk-javascript, fake media device)",
+          "expectedEvent": "call_ended",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/calls/call-ended.spec.ts",
+          "testTitleMatch": "call_ended webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "meeting_started",
+          "category": "MEETINGS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
+          "expectedEvent": "meeting_started",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/meetings/meeting-started.spec.ts",
+          "testTitleMatch": "meeting_started webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "meeting_participant_joined",
+          "category": "MEETINGS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
+          "expectedEvent": "meeting_participant_joined",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/meetings/meeting-participant-joined.spec.ts",
+          "testTitleMatch": "meeting_participant_joined webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "meeting_participant_left",
+          "category": "MEETINGS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
+          "expectedEvent": "meeting_participant_left",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/meetings/meeting-participant-left.spec.ts",
+          "testTitleMatch": "meeting_participant_left webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "meeting_ended",
+          "category": "MEETINGS",
+          "environments": [
+            "prod-eu",
+            "prod-us",
+            "prod-in"
+          ],
+          "trigger": "Real Calls SDK session join, no ringing (CometChatCalls.joinSession with an arbitrary session ID)",
+          "expectedEvent": "meeting_ended",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.sessionId"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/meetings/meeting-ended.spec.ts",
+          "testTitleMatch": "meeting_ended webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "recording_generated",
+          "category": "MEETINGS",
+          "environments": [],
+          "trigger": "Recording/transcription generated for a Calls or Meetings session",
+          "expectedEvent": "recording_generated",
+          "automationMethod": "NONE",
+          "expectedPayloadKeys": [],
+          "status": "BLOCKED",
+          "specFile": "src/tests/meetings/meetings.spec.ts",
+          "testTitleMatch": "recording_generated (documented gap)",
+          "reason": "Requires recording actually enabled for the session (autoStartRecording, or an app-level recording feature) — not yet confirmed whether that's on for any of the 4 apps, and this is async (real processing delay after the session ends before the recording is ready), unlike every other Meetings/Calls trigger.",
+          "runStatus": "BLOCKED",
+          "error": null
+        },
+        {
+          "id": "transcription_generated",
+          "category": "MEETINGS",
+          "environments": [],
+          "trigger": "Recording/transcription generated for a Calls or Meetings session",
+          "expectedEvent": "transcription_generated",
+          "automationMethod": "NONE",
+          "expectedPayloadKeys": [],
+          "status": "BLOCKED",
+          "specFile": "src/tests/meetings/meetings.spec.ts",
+          "testTitleMatch": "transcription_generated (documented gap)",
+          "reason": "Voice transcription is a separate paid extension (Rev.ai-backed), not a built-in Calls/Meetings SDK feature — needs its own Rev.ai account and Dashboard configuration, which is not confirmed to exist on any of the 4 apps. Not something more research or live probing from this project can resolve on its own.",
+          "runStatus": "BLOCKED",
+          "error": null
+        },
+        {
+          "id": "after_notification_created",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notifications/messages (real Campaigns REST send)",
+          "expectedEvent": "after_notification_created",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.notificationId",
+            "data.templateId",
+            "data.channels",
+            "data.sendMode"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-notification-created.spec.ts",
+          "testTitleMatch": "after_notification_created webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_feed_item_sent",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notifications/messages, in_app channel",
+          "expectedEvent": "after_feed_item_sent",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-feed-item-sent.spec.ts",
+          "testTitleMatch": "after_feed_item_sent webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_feed_item_delivered",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notification-feed/{id}/read — delivered is set implicitly, not a separate action",
+          "expectedEvent": "after_feed_item_delivered",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-feed-item-delivered.spec.ts",
+          "testTitleMatch": "after_feed_item_delivered webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_feed_item_read",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notification-feed/{id}/read",
+          "expectedEvent": "after_feed_item_read",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-feed-item-read.spec.ts",
+          "testTitleMatch": "after_feed_item_read webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_campaign_completed",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/campaigns + /recipients + /send",
+          "expectedEvent": "after_campaign_completed",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.campaignId",
+            "data.status",
+            "data.sentCount"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-campaign-completed.spec.ts",
+          "testTitleMatch": "after_campaign_completed webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_feed_item_interacted",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "CometChat.reportFeedEngagement via a real connected SDK session — no REST endpoint exists for this",
+          "expectedEvent": "after_feed_item_interacted",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.notificationId",
+            "data.receiver",
+            "data.engagedAt",
+            "data.topic"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-feed-item-interacted.spec.ts",
+          "testTitleMatch": "after_feed_item_interacted webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_push_notification_sent",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "POST /campaigns/notifications/messages, push channel — fires on dispatch attempt, no real FCM/APNs credentials required",
+          "expectedEvent": "after_push_notification_sent",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.pushNotificationId",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-push-notification-sent.spec.ts",
+          "testTitleMatch": "after_push_notification_sent webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_push_notification_delivered",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "CometChat.markPushNotificationDelivered via a real connected SDK session — client-reported, no real device required",
+          "expectedEvent": "after_push_notification_delivered",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.pushNotificationId",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-push-notification-delivered.spec.ts",
+          "testTitleMatch": "after_push_notification_delivered webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_push_notification_clicked",
+          "category": "CAMPAIGN",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "CometChat.markPushNotificationClicked via a real connected SDK session — client-reported, no real device required",
+          "expectedEvent": "after_push_notification_clicked",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.pushNotificationId",
+            "data.notificationId",
+            "data.receiver",
+            "data.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/campaign/after-push-notification-clicked.spec.ts",
+          "testTitleMatch": "after_push_notification_clicked webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_campaign_failed",
+          "category": "CAMPAIGN",
+          "environments": [],
+          "trigger": "Real Campaigns/Notifications module action",
+          "expectedEvent": "after_campaign_failed",
+          "automationMethod": "NONE",
+          "expectedPayloadKeys": [],
+          "status": "BLOCKED",
+          "specFile": "src/tests/campaign/campaign.spec.ts",
+          "testTitleMatch": "after_campaign_failed (documented gap)",
+          "reason": "No reliable way found to trigger a genuine campaign failure — confirmed live 2026-09-10: adding a nonexistent/invalid user ID as the sole recipient and sending still produces after_campaign_completed (CometChat does not appear to validate recipient existence before considering the send complete). Would need a real, distinct failure condition (e.g. a since-deleted channel) that has not been identified yet.",
+          "runStatus": "BLOCKED",
+          "error": null
+        },
+        {
+          "id": "user_blocked",
+          "category": "USER",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Block a user",
+          "expectedEvent": "user_blocked",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.by",
+            "data.users"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/user/user-blocked.spec.ts",
+          "testTitleMatch": "user_blocked webhook fires with the correct blocker and blocked user",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "user_unblocked",
+          "category": "USER",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Unblock a user",
+          "expectedEvent": "user_unblocked",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.by",
+            "data.users"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/user/user-unblocked.spec.ts",
+          "testTitleMatch": "user_unblocked webhook fires with the correct unblocker and unblocked user",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "user_connection_status_changed",
+          "category": "USER",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "A real SDK client connects/disconnects (no REST equivalent)",
+          "expectedEvent": "user_connection_status_changed",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.status",
+            "data.user.uid",
+            "data.currentConnection.action"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/user/user-connection-status-changed.spec.ts",
+          "testTitleMatch": "user_connection_status_changed webhook fires when a client disconnects",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "moderation_engine_blocked",
+          "category": "MODERATION",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Send message content matching the Profanity filter rule",
+          "expectedEvent": "moderation_engine_blocked",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.data.moderation.status",
+            "data.message.data.moderation.rule.id",
+            "data.moderation"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/moderation/moderation-engine-blocked.spec.ts",
+          "testTitleMatch": "moderation_engine_blocked webhook fires when a message matches the Profanity filter",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "moderation_engine_approved",
+          "category": "MODERATION",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "Send ordinary message content that clears moderation checks",
+          "expectedEvent": "moderation_engine_approved",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.message.id",
+            "data.message.data.moderation.status"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/moderation/moderation-engine-approved.spec.ts",
+          "testTitleMatch": "moderation_engine_approved webhook fires when a clean message clears moderation",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "moderation_manual_approved",
+          "category": "MODERATION",
+          "environments": [
+            "staging-us",
+            "prod-us",
+            "prod-eu",
+            "prod-in"
+          ],
+          "trigger": "A human admin manually approves flagged content in the Dashboard",
+          "expectedEvent": "moderation_manual_approved",
+          "automationMethod": "NONE",
+          "expectedPayloadKeys": [],
+          "status": "BLOCKED",
+          "specFile": "src/tests/moderation/moderation.spec.ts",
+          "testTitleMatch": "moderation_manual_approved (documented gap)",
+          "reason": "No REST or SDK equivalent exists for a human manually approving a flagged item — Dashboard-only action.",
+          "runStatus": "BLOCKED",
+          "error": null
+        },
+        {
+          "id": "after_message",
+          "category": "LEGACY",
+          "environments": [
+            "prod-us"
+          ],
+          "trigger": "Send a text message (legacy webhook system) — fires AFTER the message is persisted, distinct from before_message",
+          "expectedEvent": "after_message",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.id",
+            "data.sender",
+            "data.receiver",
+            "data.receiverType",
+            "data.data.text"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/after-message.spec.ts",
+          "testTitleMatch": "after_message webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "before_message",
+          "category": "LEGACY",
+          "environments": [
+            "prod-eu",
+            "prod-us"
+          ],
+          "trigger": "Send a text message (legacy webhook system) — fires synchronously BEFORE the message is persisted",
+          "expectedEvent": "before_message",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.sender",
+            "data.receiver",
+            "data.data.text",
+            "data.data.entities.sender.entity.uid"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/before-message.spec.ts",
+          "testTitleMatch": "before_message webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_delivery_receipt_legacy",
+          "category": "LEGACY",
+          "environments": [
+            "prod-us"
+          ],
+          "trigger": "A real SDK client calls markAsDelivered (legacy webhook system)",
+          "expectedEvent": "message_delivery_receipt",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.messageId",
+            "data.receiptType",
+            "data.messageSender",
+            "data.receiptSender",
+            "data.receiptReceiver"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/message-delivery-receipt-legacy.spec.ts",
+          "testTitleMatch": "message_delivery_receipt (legacy) webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "message_read_receipt_legacy",
+          "category": "LEGACY",
+          "environments": [
+            "prod-us"
+          ],
+          "trigger": "A real SDK client calls markAsRead (legacy webhook system)",
+          "expectedEvent": "message_read_receipt",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.messageId",
+            "data.receiptType",
+            "data.messageSender",
+            "data.receiptSender",
+            "data.receiptReceiver"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/message-read-receipt-legacy.spec.ts",
+          "testTitleMatch": "message_read_receipt (legacy) webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "after_connection_status_changed",
+          "category": "LEGACY",
+          "environments": [
+            "prod-us"
+          ],
+          "trigger": "A real SDK client connects/disconnects (legacy webhook system)",
+          "expectedEvent": "after_connection_status_changed",
+          "automationMethod": "SDK",
+          "expectedPayloadKeys": [
+            "data.user.uid",
+            "data.user.status",
+            "data.event.type"
+          ],
+          "status": "AUTOMATED",
+          "specFile": "src/tests/legacy/after-connection-status-changed.spec.ts",
+          "testTitleMatch": "after_connection_status_changed webhook fires",
+          "runStatus": "AUTOMATED (not in last run)",
+          "error": null
+        },
+        {
+          "id": "email-notification-payload-generated",
+          "category": "NOTIFICATION",
+          "environments": [],
+          "trigger": "Send a message to a recipient with the Custom Email Provider enabled (fires once per recipient, ~1 min after send per observed behavior)",
+          "expectedEvent": "email-notification-payload-generated",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.to.uid",
+            "data.messages",
+            "data.senderDetails",
+            "data.subject"
+          ],
+          "status": "NOT_IMPLEMENTED",
+          "specFile": "src/tests/notification/notification-gaps.spec.ts",
+          "testTitleMatch": "email-notification-payload-generated (documented gap)",
+          "reason": "Requires Dashboard -> Settings -> Notifications -> Providers -> Custom Email/SMS Provider to be enabled with this environment's receiver URL entered as its webhook, matching Basic Auth — not yet configured/confirmed on any environment. Payload shape below is sourced from CometChat's own docs (email/sms-custom-providers), not yet live-captured — treat expectedPayloadKeys as provisional until a real event is confirmed received.",
+          "runStatus": "NOT_IMPLEMENTED",
+          "error": null
+        },
+        {
+          "id": "sms-notification-payload-generated",
+          "category": "NOTIFICATION",
+          "environments": [],
+          "trigger": "Send a message to a recipient with the Custom SMS Provider enabled (fires once per recipient, ~1 min after send per observed behavior)",
+          "expectedEvent": "sms-notification-payload-generated",
+          "automationMethod": "REST",
+          "expectedPayloadKeys": [
+            "data.to.uid",
+            "data.messages",
+            "data.senderDetails",
+            "data.smsContent"
+          ],
+          "status": "NOT_IMPLEMENTED",
+          "specFile": "src/tests/notification/notification-gaps.spec.ts",
+          "testTitleMatch": "sms-notification-payload-generated (documented gap)",
+          "reason": "Requires Dashboard -> Settings -> Notifications -> Providers -> Custom Email/SMS Provider to be enabled with this environment's receiver URL entered as its webhook, matching Basic Auth — not yet configured/confirmed on any environment. Payload shape below is sourced from CometChat's own docs (email/sms-custom-providers), not yet live-captured — treat expectedPayloadKeys as provisional until a real event is confirmed received.",
+          "runStatus": "NOT_IMPLEMENTED",
+          "error": null
+        },
+        {
+          "id": "push_custom_provider",
+          "category": "NOTIFICATION",
+          "environments": [],
+          "trigger": "N/A — no such trigger exists",
+          "expectedEvent": "push_custom_provider",
+          "automationMethod": "NONE",
+          "expectedPayloadKeys": [],
+          "status": "BLOCKED",
+          "specFile": "src/tests/notification/notification-gaps.spec.ts",
+          "testTitleMatch": "push_custom_provider (documented gap)",
+          "reason": "Confirmed via CometChat's docs (notifications/push-integration) 2026-09-15: unlike Email/SMS, Push Notifications in this same Dashboard screen has no \"Custom Provider\" webhook option at all — it only supports real FCM/APNs device-push credentials, which this project has no way to test against (and isn't a webhook to begin with). Genuinely not automatable, not merely unconfigured. Push-related webhooks that DO exist (after_push_notification_sent/delivered/clicked) are a separate mechanism, already automated under CAMPAIGN — see campaign.registry.ts.",
+          "runStatus": "BLOCKED",
           "error": null
         }
       ]
