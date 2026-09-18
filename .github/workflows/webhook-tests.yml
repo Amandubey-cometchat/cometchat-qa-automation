@@ -1,0 +1,74 @@
+name: Webhook tests
+
+# Manual trigger only, staging only — matches this project's own safety
+# posture (prod requires a human CONFIRM_PROD, see src/config/env.ts). A
+# scheduled/PR trigger can be added later once staging runs reliably here;
+# not enabled by default so this workflow never becomes mandatory or
+# surprising for local users (see README "CI/CD" — this is optional).
+on:
+  workflow_dispatch:
+    inputs:
+      grep:
+        description: 'Optional Playwright --grep filter (e.g. "group") — leave blank for the full suite'
+        required: false
+        default: ''
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    # GitHub only reads workflows from the repo root, so every step runs
+    # inside the project folder instead.
+    defaults:
+      run:
+        working-directory: projects/webhooks
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: projects/webhooks/package-lock.json
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      # env.ts requires a real .env.<APP_ENV> file on disk (see
+      # src/config/env.ts's loadDotenvFile) — this writes one from repo
+      # secrets rather than relaxing that check. Configure these secrets
+      # under Settings -> Secrets and variables -> Actions before running.
+      # staging-us is a dedicated deployment (cometchat-staging.com), so it
+      # also needs COMETCHAT_ADMIN_HOST/CLIENT_HOST — without them every call
+      # 401s. Leave those two secrets unset for a standard app.
+      - name: Write .env.staging-us from secrets
+        run: |
+          cat <<EOF > .env.staging-us
+          COMETCHAT_APP_ID=${{ secrets.COMETCHAT_APP_ID }}
+          COMETCHAT_REGION=${{ secrets.COMETCHAT_REGION }}
+          COMETCHAT_REST_API_KEY=${{ secrets.COMETCHAT_REST_API_KEY }}
+          WEBHOOK_RECEIVER_URL=${{ secrets.WEBHOOK_RECEIVER_URL }}
+          WEBHOOK_BASIC_AUTH_USER=${{ secrets.WEBHOOK_BASIC_AUTH_USER }}
+          WEBHOOK_BASIC_AUTH_PASS=${{ secrets.WEBHOOK_BASIC_AUTH_PASS }}
+          RECEIVER_QUERY_URL=${{ secrets.RECEIVER_QUERY_URL }}
+          COMETCHAT_ADMIN_HOST=${{ secrets.COMETCHAT_ADMIN_HOST }}
+          COMETCHAT_CLIENT_HOST=${{ secrets.COMETCHAT_CLIENT_HOST }}
+          EOF
+
+      - name: Run staging webhook tests
+        run: npx tsx cli/index.ts all staging
+        env:
+          PLAYWRIGHT_GREP: ${{ inputs.grep }}
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webhook-test-reports
+          # Artifact paths resolve from the repo root, not working-directory.
+          path: |
+            projects/webhooks/reports/html
+            projects/webhooks/reports/junit
+            projects/webhooks/reports/coverage
+            projects/webhooks/logs
+          retention-days: 14

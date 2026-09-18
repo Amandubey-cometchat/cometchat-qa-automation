@@ -80,6 +80,9 @@ export default defineConfig({
     // against src/registry/webhook.registry.ts, and the receiver's
     // /dashboard reads via scripts/upload-test-results.ts.
     ['json', { outputFile: 'reports/json/results.json' }],
+    // For CI systems that consume JUnit XML (GitHub Actions test summaries,
+    // GitLab/Jenkins test reports) — not read by anything else in this repo.
+    ['junit', { outputFile: 'reports/junit/results.xml' }],
   ],
   // No browser project needed — these tests hit REST APIs, not a UI. The
   // one exception (src/clients/sdk.client.ts, driving a real CometChat SDK

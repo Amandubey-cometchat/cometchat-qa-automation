@@ -1,0 +1,28 @@
+# Optional/advanced execution path — see README "CI/CD". Most users should
+# use ./run.sh / run.bat instead; this exists for teams that already
+# standardize on Docker for CI or shared environments.
+#
+#   docker compose run --rm tests                       # full staging suite
+#   docker compose run --rm tests npx tsx cli/index.ts group staging
+#   docker compose up receiver                           # local receiver, for receiver dev only —
+#                                                          # the normal flow uses the deployed Render receiver
+services:
+  tests:
+    build: .
+    env_file:
+      - .env.staging-us
+    environment:
+      APP_ENV: staging-us
+    volumes:
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+
+  receiver:
+    build:
+      context: ./receiver
+    env_file:
+      - ./receiver/.env
+    ports:
+      - '4001:4001'
+    volumes:
+      - ./receiver/data:/app/data

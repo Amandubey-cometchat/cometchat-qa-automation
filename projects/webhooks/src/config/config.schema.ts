@@ -37,7 +37,7 @@ export interface EnvironmentConfig {
   clientHost?: string;
 }
 
-const REQUIRED_KEYS: (keyof EnvironmentConfig)[] = [
+export const REQUIRED_KEYS: (keyof EnvironmentConfig)[] = [
   'appId',
   'region',
   'restApiKey',
