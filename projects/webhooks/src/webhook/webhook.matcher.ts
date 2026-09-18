@@ -86,6 +86,11 @@ export function byPushNotificationId(pushNotificationId: string): WebhookMatcher
   return (p) => p?.data?.pushNotificationId === pushNotificationId;
 }
 
+/** email-notification-payload-generated / sms-notification-payload-generated correlate via the notified recipient's uid, per CometChat's docs (data.to.uid) — not yet live-confirmed, see notification.registry.ts. */
+export function byNotificationRecipientUid(uid: string): WebhookMatcher {
+  return (p) => p?.data?.to?.uid === uid;
+}
+
 export function and(...matchers: WebhookMatcher[]): WebhookMatcher {
   return (p) => matchers.every((m) => m(p));
 }

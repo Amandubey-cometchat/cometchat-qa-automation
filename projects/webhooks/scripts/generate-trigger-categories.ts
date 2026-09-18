@@ -55,6 +55,7 @@ const DISPLAY_LABEL: Record<string, string> = {
   USER: 'User',
   MODERATION: 'Moderation',
   LEGACY: 'Legacy',
+  NOTIFICATION: 'Notification',
 };
 
 const triggerToCategory: Record<string, string> = {};

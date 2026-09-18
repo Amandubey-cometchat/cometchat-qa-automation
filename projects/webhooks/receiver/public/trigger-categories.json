@@ -58,7 +58,10 @@
     "moderation_manual_approved": "MODERATION",
     "after_message": "LEGACY",
     "before_message": "LEGACY",
-    "after_connection_status_changed": "LEGACY"
+    "after_connection_status_changed": "LEGACY",
+    "email-notification-payload-generated": "NOTIFICATION",
+    "sms-notification-payload-generated": "NOTIFICATION",
+    "push-notification-payload-generated": "NOTIFICATION"
   },
   "categoryTotals": {
     "GROUP": 11,
@@ -68,7 +71,8 @@
     "CAMPAIGN": 10,
     "USER": 3,
     "MODERATION": 3,
-    "LEGACY": 5
+    "LEGACY": 5,
+    "NOTIFICATION": 3
   },
   "triggerToDisplayLabel": {
     "group_created": "Group",
@@ -129,6 +133,9 @@
     "moderation_manual_approved": "Moderation",
     "after_message": "Legacy",
     "before_message": "Legacy",
-    "after_connection_status_changed": "Legacy"
+    "after_connection_status_changed": "Legacy",
+    "email-notification-payload-generated": "Notification",
+    "sms-notification-payload-generated": "Notification",
+    "push-notification-payload-generated": "Notification"
   }
 }

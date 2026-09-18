@@ -18,3 +18,14 @@ export const CALL_RING_TIMEOUT_SECONDS = 5;
 export const CALL_UNANSWERED_TIMEOUT_MS = 20000;
 /** call_started/call_participant_joined/call_participant_left/call_ended/call_busy: real WebRTC session join is slower than plain signaling — verified live (prod-eu, 2026-09-09) comfortably within this window. */
 export const CALL_SESSION_TIMEOUT_MS = 30000;
+/** email-notification-payload-generated / sms-notification-payload-generated: fires well after ordinary message webhooks — observed live at roughly the 1-minute mark, not immediately on send (see src/registry/notification.registry.ts). Generous buffer past that. */
+export const NOTIFICATION_TIMEOUT_MS = 90000;
+/**
+ * Playwright's own per-test timeout for the notification specs, which must
+ * exceed NOTIFICATION_TIMEOUT_MS or the test is killed mid-wait and reports
+ * a misleading "Test timeout of 30000ms exceeded" instead of a real
+ * "webhook never arrived" failure. playwright.config.ts's global `timeout`
+ * (30s) suits every other spec here; only these need the override, applied
+ * per-spec via test.setTimeout().
+ */
+export const NOTIFICATION_TEST_TIMEOUT_MS = 120000;

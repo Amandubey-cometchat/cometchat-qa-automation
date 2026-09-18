@@ -38,9 +38,29 @@ const REAL_LEGACY_SPECS = [
   '**/tests/legacy/after-connection-status-changed.spec.ts',
 ];
 
+// Same reasoning as REAL_LEGACY_SPECS above: these assume Dashboard ->
+// Settings -> Notifications -> Providers -> Custom Email/SMS/Push Provider
+// is enabled with this environment's receiver URL entered. push-notification
+// IS live-verified (prod-eu only, 2026-09-15 — see
+// src/registry/notification.registry.ts) and genuinely AUTOMATED there, but
+// still excluded by default here: it's only configured on that one
+// environment, and running it against staging/prod-us/prod-in (where it
+// isn't) would spuriously fail the exact way this gate exists to prevent.
+// Set RUN_NOTIFICATION=1 (on an environment where the relevant provider is
+// actually configured) to lift this. notification-gaps.spec.ts (the
+// registry-driven gap file) is NOT in this list, same reason
+// legacy.spec.ts isn't in REAL_LEGACY_SPECS.
+const REAL_NOTIFICATION_SPECS = [
+  '**/tests/notification/email-notification.spec.ts',
+  '**/tests/notification/sms-notification.spec.ts',
+  '**/tests/notification/push-notification.spec.ts',
+];
+
+const testIgnore = [...(process.env.RUN_LEGACY === '1' ? [] : REAL_LEGACY_SPECS), ...(process.env.RUN_NOTIFICATION === '1' ? [] : REAL_NOTIFICATION_SPECS)];
+
 export default defineConfig({
   testDir: './src/tests',
-  testIgnore: process.env.RUN_LEGACY === '1' ? undefined : REAL_LEGACY_SPECS,
+  testIgnore: testIgnore.length ? testIgnore : undefined,
   timeout: 30000,
   // Per-test failure artifacts (error-context.md, traces, screenshots) —
   // Playwright's default is a bare top-level test-results/, which would sit
