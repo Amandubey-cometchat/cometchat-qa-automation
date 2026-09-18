@@ -1,22 +1,9 @@
-node_modules/
+# Repo-wide safety net. Each project under projects/ keeps its own
+# .gitignore for its own build output — these patterns just make sure no
+# project, current or future, can ever commit secrets or dependencies.
 .env
 .env.*
 !.env.example
-receiver/.env
-
-# Playwright output — reports/coverage/ (the actual deliverable) stays tracked
-test-results/
-playwright-report/
-blob-report/
-reports/html/
-reports/json/
-reports/test-artifacts/
-
-# Receiver's persisted event log — runtime data, not source
-receiver/data/
-
-# Downloaded cloudflared binary — not source, platform-specific
-.bin/
-
+node_modules/
 .DS_Store
 *.log
