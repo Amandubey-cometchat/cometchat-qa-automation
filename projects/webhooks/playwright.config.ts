@@ -30,7 +30,13 @@ fs.writeFileSync(path.join(jsonReportDir, '.run-env.json'), JSON.stringify({ APP
 // legacy.spec.ts (the registry-driven gap file) is NOT in this list — it's
 // pure test.skip() calls with no live dependency, safe in every run, same
 // as every other category's gap file.
-const REAL_LEGACY_SPECS = ['**/tests/legacy/before-message.spec.ts'];
+const REAL_LEGACY_SPECS = [
+  '**/tests/legacy/before-message.spec.ts',
+  '**/tests/legacy/after-message.spec.ts',
+  '**/tests/legacy/message-delivery-receipt-legacy.spec.ts',
+  '**/tests/legacy/message-read-receipt-legacy.spec.ts',
+  '**/tests/legacy/after-connection-status-changed.spec.ts',
+];
 
 export default defineConfig({
   testDir: './src/tests',

@@ -40,3 +40,20 @@ export async function addReaction(messageId: string | number, reaction: string, 
 export async function removeReaction(messageId: string | number, reaction: string, onBehalfOf: string) {
   return apiRequest('DELETE', `/messages/${messageId}/reactions/${encodeURIComponent(reaction)}`, undefined, { onBehalfOf });
 }
+
+/**
+ * Live-verified 2026-09-12 against staging-us: POST /messages/{id}/pin fires
+ * message_pinned for real (not documented as a flat REST path anywhere
+ * public at the time this project last checked — see
+ * src/registry/message.registry.ts's prior 2026-09-04 finding, which this
+ * supersedes). No request body; onBehalfOf attributes the pin the same way
+ * every other action in this client does.
+ */
+export async function pinMessage(messageId: string | number, onBehalfOf: string) {
+  return apiRequest('POST', `/messages/${messageId}/pin`, undefined, { onBehalfOf });
+}
+
+/** Live-verified 2026-09-12 against staging-us: DELETE /messages/{id}/pin fires message_unpinned for real. */
+export async function unpinMessage(messageId: string | number, onBehalfOf: string) {
+  return apiRequest('DELETE', `/messages/${messageId}/pin`, undefined, { onBehalfOf });
+}

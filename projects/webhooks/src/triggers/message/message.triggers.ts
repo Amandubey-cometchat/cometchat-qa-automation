@@ -16,6 +16,8 @@ export const editMessage = messagesClient.editMessage;
 export const deleteMessage = messagesClient.deleteMessage;
 export const addReaction = messagesClient.addReaction;
 export const removeReaction = messagesClient.removeReaction;
+export const pinMessage = messagesClient.pinMessage;
+export const unpinMessage = messagesClient.unpinMessage;
 
 /** user_mentioned fires from an ordinary sendMessage call whose text contains <@uid:...> — no separate API. */
 export const mentionUser = messagesClient.sendTextMessage;

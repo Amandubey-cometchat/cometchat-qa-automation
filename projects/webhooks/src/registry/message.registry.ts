@@ -128,41 +128,31 @@ export const MESSAGE_REGISTRY: WebhookRegistryEntry[] = [
     id: 'message_pinned',
     category: 'MESSAGE',
     environments: ALL_ENVS,
-    trigger: 'Pin a message (requires the Pin Message extension)',
+    trigger: 'POST /messages/{id}/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/messages/pin-message)',
     expectedEvent: 'message_pinned',
     automationMethod: 'REST',
-    expectedPayloadKeys: [],
-    status: 'NOT_IMPLEMENTED',
-    specFile: 'src/tests/message/message-gaps.spec.ts',
-    testTitleMatch: 'message_pinned (documented gap)',
-    reason:
-      'Live-probed 2026-09-04 against prod-eu: "Pin Message" exists as a catalog extension ' +
-      '(GET /extensions/pin-message returns real metadata), but GET /extensions returns [] — the extension ' +
-      "is NOT currently enabled on this app. Two guessed action-endpoint paths (POST /extensions/pin-message, " +
-      'POST /v1/pin) both 404 with ERR_API_NOT_FOUND, so the real pin/unpin endpoint is unconfirmed — CometChat\'s ' +
-      "public docs only show it called via the JS SDK's CometChat.callExtension('pin-message', 'POST', 'v1/pin', ...), " +
-      "not a documented flat REST path. Also not listed in CometChat's own webhook trigger documentation at all. " +
-      'Needs: (1) Pin Message enabled in Dashboard -> Chat & Messaging -> Features on a target app, (2) the real ' +
-      'REST/SDK call path confirmed (not guessed), (3) confirmation this actually fires a message_pinned webhook.',
+    expectedPayloadKeys: ['data.message.id', 'data.message.pinnedBy', 'data.message.pinnedAt'],
+    status: 'AUTOMATED',
+    specFile: 'src/tests/message/message-pinned.spec.ts',
+    testTitleMatch: 'message_pinned webhook fires when a message is pinned',
   },
   {
     id: 'message_unpinned',
     category: 'MESSAGE',
     environments: ALL_ENVS,
-    trigger: 'Unpin a message (requires the Pin Message extension)',
+    trigger: 'DELETE /messages/{id}/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/messages/unpin-message)',
     expectedEvent: 'message_unpinned',
     automationMethod: 'REST',
-    expectedPayloadKeys: [],
-    status: 'NOT_IMPLEMENTED',
-    specFile: 'src/tests/message/message-gaps.spec.ts',
-    testTitleMatch: 'message_unpinned (documented gap)',
-    reason: 'Same root cause as message_pinned above.',
+    expectedPayloadKeys: ['data.message.id', 'data.message.unpinnedBy', 'data.message.unpinnedAt'],
+    status: 'AUTOMATED',
+    specFile: 'src/tests/message/message-unpinned.spec.ts',
+    testTitleMatch: 'message_unpinned webhook fires when a message is unpinned',
   },
   {
     id: 'conversation_pinned',
     category: 'MESSAGE',
     environments: ALL_ENVS,
-    trigger: 'Pin a conversation',
+    trigger: 'POST /users/{uid}/conversation/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/conversations/pin-user-conversation)',
     expectedEvent: 'conversation_pinned',
     automationMethod: 'REST',
     expectedPayloadKeys: [],
@@ -170,22 +160,26 @@ export const MESSAGE_REGISTRY: WebhookRegistryEntry[] = [
     specFile: 'src/tests/message/message-gaps.spec.ts',
     testTitleMatch: 'conversation_pinned (documented gap)',
     reason:
-      'Searched CometChat\'s public docs and extension catalog 2026-09-04 — zero trace of this trigger or any ' +
-      'REST/SDK endpoint for pinning a conversation (distinct from pinning a message). Not in the webhook events ' +
-      'documentation, not a discoverable extension. Needs the exact trigger mechanism confirmed — likely only ' +
-      "visible in the Dashboard's own webhook trigger checkboxes, which may be ahead of the public docs.",
+      'UPDATE 2026-09-12 (supersedes the 2026-09-04 "no endpoint exists" finding — CometChat added ' +
+      'REST conversation pinning since then): live-probed against staging-us — POST /users/{uid}/conversation/pin ' +
+      'succeeds (200, real pinnedBy/pinnedAt in the response), but no conversation_pinned webhook arrived within ' +
+      '15s. Same pattern seen before with Group and Moderation triggers: the underlying feature works over REST, ' +
+      'but the specific webhook trigger checkbox is very likely unchecked in this app\'s Dashboard webhook config. ' +
+      'Needs a Dashboard check (Webhooks -> Message category -> confirm conversation_pinned is individually ' +
+      'enabled, not just the category), then re-probe — the client/trigger side is otherwise ready to wire up ' +
+      'immediately once the webhook itself fires.',
   },
   {
     id: 'conversation_unpinned',
     category: 'MESSAGE',
     environments: ALL_ENVS,
-    trigger: 'Unpin a conversation',
+    trigger: 'DELETE /users/{uid}/conversation/pin (real, documented REST endpoint — see docs.cometchat.com/rest-api/conversations/unpin-user-conversation)',
     expectedEvent: 'conversation_unpinned',
     automationMethod: 'REST',
     expectedPayloadKeys: [],
     status: 'NOT_IMPLEMENTED',
     specFile: 'src/tests/message/message-gaps.spec.ts',
     testTitleMatch: 'conversation_unpinned (documented gap)',
-    reason: 'Same root cause as conversation_pinned above.',
+    reason: 'Same root cause as conversation_pinned above — live-probed together 2026-09-12, same result (REST succeeds, webhook silent).',
   },
 ];

@@ -48,6 +48,20 @@ export function validateUserMentioned(payload: ReceivedWebhookPayload, expected:
   expect(payload.data.message.data.mentions).toHaveProperty(expected.mentionedUid);
 }
 
+export function validateMessagePinned(payload: ReceivedWebhookPayload, expected: { id: string | number; pinnedBy: string }) {
+  validateEnvelope(payload, 'message_pinned');
+  expect(payload.data.message.id).toBe(String(expected.id));
+  expect(payload.data.message.pinnedBy).toBe(expected.pinnedBy);
+  expect(typeof payload.data.message.pinnedAt).toBe('number');
+}
+
+export function validateMessageUnpinned(payload: ReceivedWebhookPayload, expected: { id: string | number; unpinnedBy: string }) {
+  validateEnvelope(payload, 'message_unpinned');
+  expect(payload.data.message.id).toBe(String(expected.id));
+  expect(payload.data.message.unpinnedBy).toBe(expected.unpinnedBy);
+  expect(typeof payload.data.message.unpinnedAt).toBe('number');
+}
+
 export function validateReceipt(payload: ReceivedWebhookPayload, expected: { trigger: 'message_delivery_receipt' | 'message_read_receipt'; action: 'delivered' | 'read'; messageId: string | number; recipient: string; sender: string }) {
   validateEnvelope(payload, expected.trigger);
   expect(payload.data.body.action).toBe(expected.action);

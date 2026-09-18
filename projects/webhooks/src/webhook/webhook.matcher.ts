@@ -51,6 +51,21 @@ export function byLegacyMessageText(text: string): WebhookMatcher {
   return (p) => p?.data?.data?.text === text;
 }
 
+/** after_message (legacy, fires after persistence so a real id exists) — id sits directly under data, not data.message like every modern message webhook. Verified live 2026-09-15. */
+export function byLegacyMessageId(messageId: string | number): WebhookMatcher {
+  return (p) => p?.data?.id === String(messageId);
+}
+
+/** message_delivery_receipt_legacy / message_read_receipt_legacy correlate via data.messageId directly — no data.body nesting like the modern receipts. Verified live 2026-09-15. */
+export function byLegacyReceiptMessageId(messageId: string | number): WebhookMatcher {
+  return (p) => p?.data?.messageId === String(messageId);
+}
+
+/** after_connection_status_changed (legacy) — structurally distinct from modern user_connection_status_changed (data.user/data.event, not data.user/data.status/data.currentConnection). Verified live 2026-09-15. */
+export function byLegacyConnectionStatus(uid: string, eventType: 'connected' | 'disconnected'): WebhookMatcher {
+  return (p) => p?.data?.user?.uid === uid && p?.data?.event?.type === eventType;
+}
+
 /** Campaign webhooks (after_notification_created) correlate via notificationId. Verified live 2026-09-10. */
 export function byNotificationId(notificationId: string): WebhookMatcher {
   return (p) => p?.data?.notificationId === notificationId;
