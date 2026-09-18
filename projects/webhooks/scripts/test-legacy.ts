@@ -119,7 +119,7 @@ async function canaryCheck(expectMode: 'legacy' | 'modern'): Promise<boolean> {
       // RUN_LEGACY=1 lifts playwright.config.ts's default exclusion of real
       // (non-gap) Legacy spec files — see that file's comment for why they
       // don't run in the regular suite.
-      execSync('npx playwright test src/tests/legacy/', { stdio: 'inherit', env: { ...process.env, RUN_LEGACY: '1' } });
+      execSync('npx playwright test src/tests/legacy/', { stdio: 'inherit', env: { ...process.env, RUN_LEGACY: '1', LIVE_RESULTS: '1' } });
     } catch {
       testsFailed = true;
     }

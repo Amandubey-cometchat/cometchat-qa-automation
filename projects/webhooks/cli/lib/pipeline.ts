@@ -67,6 +67,8 @@ export interface SuiteOptions {
 export async function runSuite(appEnv: AppEnvName, { grep, runNotification }: SuiteOptions = {}): Promise<number> {
   const env = envFor(appEnv);
   if (runNotification) env.RUN_NOTIFICATION = '1';
+  // Full runs stream results live to the dashboard (src/reporting/live-results.reporter.ts).
+  env.LIVE_RESULTS = '1';
 
   // Best-effort convenience steps — never block/fail the run (matches the
   // existing scripts' own documented behavior).

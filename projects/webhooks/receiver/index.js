@@ -251,14 +251,119 @@ function flattenSpecs(suite, fileTitle, out, historySnapshot) {
   }
 }
 
+// Live streaming rewrites the snapshot once per finished test, and
+// overlapping async fs.writeFile calls on one path can interleave and
+// corrupt it. So writes are serialized and coalesced: at most one in flight,
+// and whatever state is newest when it finishes is what gets written next.
+let reportWriteInFlight = false;
+let reportWritePending = false;
+function persistReport() {
+  if (reportWriteInFlight) {
+    reportWritePending = true;
+    return;
+  }
+  reportWriteInFlight = true;
+  const done = (err) => {
+    if (err && err.code !== 'ENOENT') console.error('Failed to persist test results:', err.message);
+    reportWriteInFlight = false;
+    if (reportWritePending) {
+      reportWritePending = false;
+      persistReport();
+    }
+  };
+  if (latestReport) fs.writeFile(TEST_RESULTS_FILE, JSON.stringify(latestReport), done);
+  else fs.unlink(TEST_RESULTS_FILE, done);
+}
+
 // Accepts the raw Playwright JSON report right after a test run — see
-// scripts/upload-test-results.js. Same Basic Auth as webhook delivery.
+// scripts/upload-test-results.js. Same Basic Auth as webhook delivery. This
+// is the authoritative final snapshot, so it replaces any live-built report.
 app.post('/test-results', checkAuth, (req, res) => {
   latestReport = req.body;
-  fs.writeFile(TEST_RESULTS_FILE, JSON.stringify(latestReport), (err) => {
-    if (err) console.error('Failed to persist test results:', err.message);
-  });
+  persistReport();
   res.status(200).json({ ok: true });
+});
+
+// A run that stops reporting without an "end" (hard kill, sleeping laptop,
+// lost network) must not show as running forever. The slowest single test
+// here — Email/SMS notifications, ~1 min to deliver plus margin — can go
+// ~2 minutes between events, so staleness needs headroom past that.
+const LIVE_STALE_MS = 5 * 60 * 1000;
+
+function startLiveReport(evt) {
+  latestReport = {
+    stats: { startTime: evt.startTime || new Date().toISOString(), duration: null },
+    suites: [],
+    live: {
+      runId: evt.runId,
+      running: true,
+      planned: typeof evt.planned === 'number' ? evt.planned : null,
+      completed: 0,
+      current: null,
+      env: evt.env || null,
+      endStatus: null,
+      lastEventAt: Date.now(),
+    },
+  };
+  return latestReport;
+}
+
+// Per-test results streamed by src/reporting/live-results.reporter.ts as a
+// run progresses, so the dashboard fills in live instead of sitting at zero
+// until the final upload. Builds the same shape Playwright's JSON reporter
+// produces, so GET /test-results' flattenSpecs reads live and final reports
+// identically.
+app.post('/test-results/live', checkAuth, (req, res) => {
+  const evt = req.body || {};
+  if (!evt.runId || !['begin', 'testBegin', 'testEnd', 'end'].includes(evt.type)) {
+    return res.status(400).json({ error: 'expected { runId, type: "begin" | "testBegin" | "testEnd" | "end" }' });
+  }
+
+  // An event for a run we haven't seen begin — e.g. a free-tier host still
+  // waking up dropped the "begin" POST — starts that run rather than being lost.
+  const isCurrentRun = latestReport && latestReport.live && latestReport.live.runId === evt.runId;
+  const report = evt.type === 'begin' || !isCurrentRun ? startLiveReport(evt) : latestReport;
+  const live = report.live;
+  live.lastEventAt = Date.now();
+
+  if (evt.type === 'testBegin') {
+    live.current = { file: String(evt.file || ''), title: String(evt.title || '') };
+  } else if (evt.type === 'testEnd') {
+    const file = String(evt.file || 'unknown');
+    let suite = report.suites.find((s) => s.file === file);
+    if (!suite) {
+      suite = { file, title: file, specs: [] };
+      report.suites.push(suite);
+    }
+    const spec = {
+      title: String(evt.title || ''),
+      ok: Boolean(evt.ok),
+      tests: [
+        {
+          expectedStatus: evt.expectedStatus,
+          annotations: Array.isArray(evt.annotations) ? evt.annotations : [],
+          results: [{ status: evt.status, duration: evt.duration, startTime: evt.startTime, error: evt.error || undefined }],
+        },
+      ],
+    };
+    // A retry re-reports the same test: replace it rather than double-count.
+    const existing = suite.specs.findIndex((s) => s.title === spec.title);
+    if (existing === -1) {
+      suite.specs.push(spec);
+      live.completed++;
+    } else {
+      suite.specs[existing] = spec;
+    }
+    if (live.current && live.current.file === file && live.current.title === spec.title) live.current = null;
+  } else if (evt.type === 'end') {
+    live.running = false;
+    live.current = null;
+    live.endStatus = evt.status || null;
+    report.stats.duration = typeof evt.duration === 'number' ? evt.duration : null;
+  }
+
+  persistReport();
+  res.json({ ok: true });
 });
 
 // Flattened Passed/Failed/Skipped breakdown of the most recent test run, for
@@ -279,12 +384,28 @@ app.get('/test-results', (_req, res) => {
   const counts = { passed: 0, failed: 0, skipped: 0, 'expected-fail': 0 };
   for (const t of tests) counts[t.category] = (counts[t.category] || 0) + 1;
 
+  // Present only for a report built by live streaming; the final full upload
+  // carries no `live` block, which is what marks a run as finished.
+  const live = report.live || null;
+  const stale = Boolean(live && live.running && Date.now() - live.lastEventAt > LIVE_STALE_MS);
+
   res.json({
     available: true,
     tests,
     counts,
     startTime: report.stats ? report.stats.startTime : null,
     duration: report.stats ? report.stats.duration : null,
+    live: live
+      ? {
+          running: live.running && !stale,
+          stale,
+          planned: live.planned,
+          completed: live.completed,
+          current: live.running && !stale ? live.current : null,
+          env: live.env,
+          endStatus: live.endStatus || null,
+        }
+      : null,
   });
 });
 
@@ -294,9 +415,7 @@ app.get('/test-results', (_req, res) => {
 // below (DELETE /webhook/events, /webhook/history).
 app.delete('/test-results', (_req, res) => {
   latestReport = null;
-  fs.unlink(TEST_RESULTS_FILE, (err) => {
-    if (err && err.code !== 'ENOENT') console.error('Failed to remove test results file:', err.message);
-  });
+  persistReport();
   res.json({ ok: true });
 });
 
@@ -311,6 +430,7 @@ app.listen(PORT, () => {
   console.log(`  GET    /webhook/history  <- full persisted event log`);
   console.log(`  DELETE /webhook/history  <- clear persisted history`);
   console.log(`  POST   /test-results     <- uploaded after each test run (see scripts/upload-test-results.js)`);
+  console.log(`  POST   /test-results/live <- per-test results streamed during a run (src/reporting/live-results.reporter.ts)`);
   console.log(`  GET    /test-results     <- Playwright pass/fail/skip breakdown`);
   console.log(`  DELETE /test-results     <- clear the last uploaded test run's snapshot`);
   console.log(`  GET    /dashboard        <- visual event inspector (reads history)`);

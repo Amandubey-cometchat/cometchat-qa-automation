@@ -3,657 +3,701 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Webhook Event Inspector</title>
+<title>Webhook Dashboard</title>
 <style>
+  /*
+   * Color roles. Category hues are the dataviz reference palette's dark
+   * steps in fixed order, validated against THIS page's panel surface
+   * (#171a23) with scripts/validate_palette.js: all checks pass, worst
+   * adjacent CVD ΔE 8.4. The previous hues failed that check (Message vs
+   * Call & Meeting: ΔE 3.8 under protanopia) and reused status colors as
+   * categories (Message was the exact "passed" green, Moderation the exact
+   * "warning" amber). Status tokens below are reserved for state only and
+   * always ship with a text label, never color alone.
+   */
   :root {
-    --bg: #0f1117;
-    --panel: #171a23;
-    --panel-border: #262b38;
-    --text: #e6e8ef;
+    color-scheme: dark;
+    --page: #0f1117;
+    --surface: #171a23;
+    --surface-2: #1d2130;
+    --hairline: #262b38;
+    --ink: #e6e8ef;
+    --ink-2: #b3b8c8;
     --muted: #8b91a7;
     --accent: #6c8cff;
-    --ok: #33c07a;
-    --warn: #e2a33d;
+
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+    --neutral: #6b7086;
+
+    --cat-group: #3987e5;
+    --cat-call: #d95926;
+    --cat-message: #199e70;
+    --cat-campaign: #c98500;
+    --cat-user: #d55181;
+    --cat-moderation: #008300;
+    --cat-legacy: #9085e9;
+    --cat-notification: #e66767;
+    --cat-other: #6b7086;
+
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  }
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: var(--panel);
-    border-bottom: 1px solid var(--panel-border);
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  h1 {
-    font-size: 15px;
-    font-weight: 600;
-    margin: 0;
-    white-space: nowrap;
-    letter-spacing: -0.01em;
-  }
-  .env-badge {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    background: #1a1d28;
-    border: 1px solid var(--panel-border);
-    padding: 3px 9px;
-    border-radius: 20px;
-    white-space: nowrap;
-  }
-  .status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--ok);
-    box-shadow: 0 0 0 3px rgba(51,192,122,0.15);
-    animation: pulse-ok 2s ease-in-out infinite;
-  }
-  .dot.off { background: #e05252; box-shadow: 0 0 0 3px rgba(224,82,82,0.15); animation: none; }
-  @keyframes pulse-ok {
-    0%, 100% { box-shadow: 0 0 0 3px rgba(51,192,122,0.15); }
-    50% { box-shadow: 0 0 0 6px rgba(51,192,122,0.08); }
-  }
-  select, button, input[type="text"] {
-    background: #1f2330;
-    color: var(--text);
-    border: 1px solid var(--panel-border);
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 13px;
-    font-family: inherit;
-  }
-  button { cursor: pointer; }
-  button:hover { border-color: var(--accent); }
-  button.danger:hover { border-color: #e05252; color: #ff8080; }
-  .spacer { flex: 1; }
-  .app-shell {
-    display: flex;
-    align-items: flex-start;
-    max-width: 1180px;
-    margin: 0 auto;
-  }
-  .sidebar {
-    width: 200px;
-    flex: none;
-    padding: 20px 8px 20px 20px;
-    position: sticky;
-    top: 57px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  .sidebar-item {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 9px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    color: var(--muted);
-    cursor: pointer;
-    background: transparent;
-    border: 1px solid transparent;
-    text-align: left;
-    width: 100%;
-  }
-  .sidebar-item-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    width: 100%;
-  }
-  .sidebar-progress {
-    height: 3px;
-    border-radius: 2px;
-    background: #1f2330;
-    overflow: hidden;
-  }
-  .sidebar-progress__fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 0.5s ease;
-  }
-  .sidebar-item:hover { background: #1a1d28; color: var(--text); }
-  .sidebar-item.active {
-    background: var(--panel);
-    border-color: var(--panel-border);
-    color: var(--text);
-    font-weight: 600;
-  }
-  .sidebar-item .sidebar-count {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    background: rgba(108,140,255,0.12);
-    padding: 1px 7px;
-    border-radius: 10px;
-  }
-  .sidebar-item.active .sidebar-count { color: var(--accent); }
-  .sidebar-divider {
-    height: 1px;
-    background: var(--panel-border);
-    margin: 8px 4px;
-  }
-  .main-content {
-    flex: 1;
-    min-width: 0;
-  }
-  main {
-    padding: 20px;
-  }
-  .empty {
-    color: var(--muted);
-    text-align: center;
-    padding: 60px 20px;
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--sans);
     font-size: 14px;
   }
-  .event {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 10px;
-    margin-bottom: 10px;
-    overflow: hidden;
+  button, select, input { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
-  .event.dup { border-color: var(--warn); }
-  .event--new { animation: flash-new 1.8s ease-out; }
-  @keyframes flash-new {
-    0% { background: rgba(108,140,255,0.22); }
-    100% { background: var(--panel); }
+
+  /* ---------- header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(15,17,23,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--hairline);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   }
-  .dup-badge {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: rgba(226,163,61,0.18);
-    color: var(--warn);
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand-mark {
+    width: 26px; height: 26px; border-radius: 7px; flex: none;
+    background: linear-gradient(135deg, #3987e5, #9085e9);
+    display: grid; place-items: center;
+  }
+  .brand-mark svg { width: 15px; height: 15px; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0; white-space: nowrap; letter-spacing: -0.01em; }
+  .env-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 3px 9px; border-radius: 20px;
+    border: 1px solid var(--hairline); background: var(--surface); color: var(--ink-2);
     white-space: nowrap;
   }
-  .event-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    cursor: pointer;
-    user-select: none;
-  }
-  .event-head:hover { background: rgba(108,140,255,0.06); }
-  .badge {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 5px;
-    background: rgba(108,140,255,0.15);
-    color: var(--accent);
-    white-space: nowrap;
-  }
-  .time {
-    color: var(--muted);
-    font-size: 12px;
-    font-family: var(--mono);
-  }
-  .summary {
-    color: var(--muted);
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-  }
-  .chevron {
-    color: var(--muted);
-    font-size: 11px;
-    transition: transform 0.15s;
-  }
-  .event.open .chevron { transform: rotate(90deg); }
-  .event-body {
-    display: none;
-    border-top: 1px solid var(--panel-border);
-  }
-  .event.open .event-body { display: block; }
-  pre {
-    margin: 0;
-    padding: 14px;
-    font-family: var(--mono);
-    font-size: 12px;
-    line-height: 1.5;
-    overflow-x: auto;
-    color: #c9cee0;
-  }
-  .k { color: #7fb3ff; }
-  .s { color: #9de08a; }
-  .n { color: #e2a33d; }
-  .b { color: #d693ff; }
-  .copy-row {
-    display: flex;
-    justify-content: flex-end;
-    padding: 8px 14px;
-    border-top: 1px solid var(--panel-border);
-  }
-  .copy-row button { font-size: 11px; padding: 4px 8px; }
-  .count {
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .tabs {
-    display: flex;
-    gap: 4px;
-  }
+  .env-pill .pip { width: 7px; height: 7px; border-radius: 50%; background: var(--neutral); }
+  .env-pill.prod .pip { background: var(--warning); }
+  .tabs { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 9px; padding: 3px; }
   .tab {
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--muted);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    cursor: pointer;
+    background: transparent; border: 0; color: var(--muted);
+    padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; white-space: nowrap;
   }
-  .tab:hover { color: var(--text); }
-  .tab.active {
-    background: #1f2330;
-    border-color: var(--panel-border);
-    color: var(--text);
+  .tab { display: inline-flex; align-items: center; gap: 7px; }
+  .tab:hover { color: var(--ink); }
+  .tab-live, .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; animation: live-pulse 1.4s ease-out infinite; }
+  @keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(108,140,255,0.65); } 80%, 100% { box-shadow: 0 0 0 7px rgba(108,140,255,0); } }
+  .tab.active { background: var(--surface-2); color: var(--ink); box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset; }
+  .spacer { flex: 1; }
+  .conn { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s ease-in-out infinite; }
+  .conn .dot.off { background: var(--critical); animation: none; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(12,163,12,0.18); } 50% { box-shadow: 0 0 0 6px rgba(12,163,12,0.06); } }
+  .toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); cursor: pointer; white-space: nowrap; user-select: none; }
+  .toggle input { accent-color: var(--accent); margin: 0; }
+
+  /* ---------- layout ---------- */
+  .app-shell { display: flex; align-items: flex-start; max-width: 1280px; margin: 0 auto; }
+  .sidebar {
+    width: 232px; flex: none;
+    padding: 22px 8px 22px 24px;
+    position: sticky; top: 55px;
+    display: flex; flex-direction: column; gap: 2px;
   }
-  .subheader {
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 14px 20px 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+  .side-title { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 0 10px 8px; }
+  .side-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 0 10px 10px; font-size: 11px; color: var(--muted); }
+  .side-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch { width: 8px; height: 8px; border-radius: 2px; flex: none; display: inline-block; }
+  .side-item {
+    display: flex; flex-direction: column; gap: 7px;
+    padding: 9px 10px; border-radius: 8px;
+    font-size: 13px; color: var(--ink-2);
+    cursor: pointer; background: transparent; border: 1px solid transparent;
+    text-align: left; width: 100%;
   }
+  .side-item:hover { background: var(--surface); color: var(--ink); }
+  .side-item.active { background: var(--surface); border-color: var(--hairline); color: var(--ink); }
+  .side-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+  .side-row .name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-row .num { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .side-row .check { color: var(--ink-2); font-size: 11px; }
+  .meter { display: flex; gap: 2px; height: 4px; }
+  .meter .track { flex: 1; background: var(--hairline); border-radius: 2px; overflow: hidden; }
+  .meter .fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .stack { display: flex; gap: 2px; height: 5px; }
+  .stack .seg { height: 100%; min-width: 3px; border-radius: 1px; }
+  .stack .seg:first-child { border-top-left-radius: 3px; border-bottom-left-radius: 3px; }
+  .stack .seg:last-child { border-top-right-radius: 3px; border-bottom-right-radius: 3px; }
+  .stack .empty-track { flex: 1; background: var(--hairline); border-radius: 3px; }
+
+  .main-content { flex: 1; min-width: 0; padding: 22px 24px 40px 16px; }
+
+  /* ---------- toolbar (one filter row, scopes everything below it) ---------- */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .search { position: relative; flex: 1 1 220px; min-width: 0; max-width: 340px; }
+  .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--muted); pointer-events: none; }
+  .control {
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 7px 10px; font-size: 13px; min-width: 0;
+  }
+  .control:hover { border-color: #353b4d; }
+  .search .control { width: 100%; padding-left: 31px; }
+  select.control { max-width: 240px; }
+  .chip-toggle {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 6px 10px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap;
+  }
+  .chip-toggle input { accent-color: var(--accent); margin: 0; }
+  .chip-toggle .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .btn {
+    background: var(--surface); color: var(--ink-2);
+    border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 7px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { color: var(--ink); border-color: #353b4d; }
+  .btn.danger:hover { color: #ff9a9a; border-color: rgba(208,59,59,0.6); }
+  .btn.small { padding: 4px 9px; font-size: 11.5px; }
+
+  /* ---------- KPI row (stat tiles) ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 12px;
+    padding: 14px 16px; min-width: 0; display: flex; flex-direction: column; gap: 6px;
+  }
+  .tile-label { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile-value { font-size: 26px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
+  .tile-value .of { font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .tile-sub { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .tile-sub span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+  .spark { display: flex; align-items: flex-end; gap: 2px; height: 34px; margin-top: 2px; }
+  .spark .col { flex: 1; max-width: 24px; height: 100%; display: flex; align-items: flex-end; cursor: default; }
+  .spark .bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--neutral); min-height: 0; }
+  .spark .col.now .bar { background: var(--accent); }
+  .spark .col.zero .bar { height: 1px !important; border-radius: 0; background: var(--hairline); }
+  .spark .col:hover .bar, .spark .col:focus-visible .bar { filter: brightness(1.35); }
+  .spark .col:focus-visible { outline-offset: 0; border-radius: 3px; }
+
+  /* ---------- shared tooltip ---------- */
+  .tip {
+    position: fixed; z-index: 50; pointer-events: none;
+    background: #232839; border: 1px solid #343a4f; border-radius: 8px;
+    padding: 7px 10px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    display: none; white-space: nowrap;
+  }
+  .tip .v { font-weight: 600; color: var(--ink); }
+  .tip .l { color: var(--muted); margin-top: 2px; }
+
+  /* ---------- live run strip ---------- */
+  .live {
+    background: var(--surface); border: 1px solid rgba(108,140,255,0.45); border-radius: 14px;
+    padding: 14px 18px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .live.stale { border-color: rgba(250,178,25,0.5); }
+  .live-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink);
+    background: rgba(108,140,255,0.14); padding: 3px 9px; border-radius: 20px;
+  }
+  .live.stale .live-badge { background: rgba(250,178,25,0.14); }
+  .live.stale .live-dot { background: var(--warning); animation: none; }
+  .live-head b { color: var(--ink); font-weight: 600; }
+  .live-elapsed { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  /* Track is a lighter step of the fill's own hue, so progress reads across the whole bar. */
+  .live-meter { height: 6px; border-radius: 3px; background: rgba(108,140,255,0.16); overflow: hidden; }
+  .live-meter .fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.5s ease; }
+  .live-current { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .live-current b { color: var(--ink-2); font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) {
+    .tab-live, .live-dot, .conn .dot { animation: none; }
+    .card--new { animation: none; }
+  }
+
+  /* ---------- hero (results) ---------- */
+  .hero {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 28px; align-items: center;
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px;
+    padding: 20px 24px; margin-bottom: 16px;
+  }
+  .hero-figure { font-size: 52px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
+  .hero-body { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+  .hero-caption { font-size: 14px; color: var(--ink-2); }
+  .hero-caption b { color: var(--ink); font-weight: 600; }
+  .hero-meter { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden; }
+  .hero-meter .fill { height: 100%; border-radius: 4px; transition: width 0.6s ease, background 0.3s ease; }
+  .hero-meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+  .stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
   .stat {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 8px;
-    padding: 8px 14px;
-    cursor: pointer;
-    font-size: 13px;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 7px 12px; cursor: pointer; font-size: 13px; color: var(--ink-2);
   }
-  .stat.active { border-color: var(--accent); }
-  .stat .dot2 { width: 8px; height: 8px; border-radius: 50%; }
-  .stat .n { font-family: var(--mono); font-weight: 700; font-size: 14px; color: var(--text); }
-  .stat .l { color: var(--muted); }
-  .dot2.passed { background: var(--ok); }
-  .dot2.failed { background: #e05252; }
-  .dot2.skipped { background: #8b91a7; }
-  .dot2.expected-fail { background: var(--warn); }
-  .dot2.blocked { background: #7a5cff; }
-  .dot2.delayed { background: #22b8cf; }
-  .run-meta { color: var(--muted); font-size: 12px; margin-left: auto; }
-  .test-row { display: flex; align-items: center; gap: 10px; }
-  .test-badge {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 5px;
-    white-space: nowrap;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+  .stat:hover { border-color: #353b4d; color: var(--ink); }
+  .stat.active { border-color: var(--accent); color: var(--ink); background: rgba(108,140,255,0.06); }
+  .stat .n { font-weight: 600; color: var(--ink); }
+
+  /* ---------- lists ---------- */
+  .card {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px;
+    margin-bottom: 8px; overflow: hidden;
   }
-  .test-badge.passed { background: rgba(51,192,122,0.15); color: var(--ok); }
-  .test-badge.failed { background: rgba(224,82,82,0.15); color: #ff8080; }
-  .test-badge.skipped { background: rgba(139,145,167,0.2); color: var(--muted); }
-  .test-badge.expected-fail { background: rgba(226,163,61,0.18); color: var(--warn); }
-  .test-badge.blocked { background: rgba(122,92,255,0.18); color: #a794ff; }
-  .test-badge.delayed { background: rgba(34,184,207,0.15); color: #22b8cf; }
-  .test-badge.not-received { background: rgba(108,140,255,0.15); color: var(--accent); cursor: help; }
-  .test-file { color: var(--muted); font-size: 11px; font-family: var(--mono); white-space: nowrap; }
-  .test-title { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .reason-box {
-    margin: 0;
-    padding: 14px;
-    font-family: var(--mono);
-    font-size: 12px;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    overflow-x: auto;
+  .card.dup { border-color: rgba(236,131,90,0.55); }
+  .card--new { animation: flash-new 1.8s ease-out; }
+  @keyframes flash-new { 0% { background: rgba(108,140,255,0.16); } 100% { background: var(--surface); } }
+  .card-head {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 11px 14px; background: transparent; border: 0; color: inherit;
+    font: inherit; text-align: left; cursor: pointer;
   }
-  .reason-box.error { color: #ff9d9d; }
-  .reason-box.skip { color: var(--muted); }
-  .hint-box {
-    margin: 14px 14px 0;
-    padding: 10px 12px;
-    border-radius: 6px;
-    background: rgba(108,140,255,0.1);
-    border: 1px solid rgba(108,140,255,0.3);
-    color: var(--accent);
-    font-size: 12.5px;
-    line-height: 1.5;
+  .card-head:hover { background: rgba(255,255,255,0.025); }
+  .card-head.static { cursor: default; }
+  .card-head.static:hover { background: transparent; }
+  .cat-bar { width: 3px; align-self: stretch; border-radius: 2px; flex: none; margin: -3px 0; }
+  .chev { color: var(--muted); font-size: 10px; flex: none; transition: transform 0.15s; width: 10px; }
+  .card.open .chev { transform: rotate(90deg); }
+  .trigger {
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    padding: 3px 8px; border-radius: 5px; background: rgba(108,140,255,0.12); color: #a9bbff;
+    white-space: nowrap; flex: none;
   }
-  .hint-box b { color: var(--text); }
-  .pass-rate-banner {
-    max-width: 980px;
-    margin: 14px auto 0;
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: linear-gradient(135deg, rgba(108,140,255,0.08), rgba(51,192,122,0.05));
-    border: 1px solid var(--panel-border);
-    border-radius: 12px;
+  .summary { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .summary .who { color: var(--ink); }
+  .summary .quote { color: var(--muted); }
+  .when { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; }
+  .flag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    background: rgba(255,255,255,0.05); color: var(--ink); white-space: nowrap; flex: none;
   }
-  .pass-rate-ring__track { stroke: #262b38; }
-  .pass-rate-ring__value {
-    stroke: var(--ok);
-    stroke-linecap: round;
-    transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;
+  .card-body { display: none; border-top: 1px solid var(--hairline); }
+  .card.open .card-body { display: block; }
+  pre {
+    margin: 0; padding: 14px; font-family: var(--mono); font-size: 12px; line-height: 1.55;
+    overflow-x: auto; color: #c9cee0;
   }
-  .pass-rate-pct {
-    font-size: 22px;
-    font-weight: 700;
-    font-family: var(--mono);
-    line-height: 1.1;
+  .k { color: #7fb3ff; } .s { color: #9de08a; } .n { color: #e2b86b; } .b { color: #d693ff; }
+  .card-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 14px; border-top: 1px solid var(--hairline); }
+
+  .test-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
+  .test-file { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .test-title { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .reason { white-space: pre-wrap; line-height: 1.6; }
+  .reason.error { color: #ffb0b0; }
+  .reason.skip { color: var(--muted); }
+  .hint {
+    margin: 14px 14px 0; padding: 10px 12px; border-radius: 8px;
+    background: rgba(108,140,255,0.08); border: 1px solid rgba(108,140,255,0.28);
+    color: var(--ink-2); font-size: 12.5px; line-height: 1.5;
   }
-  .pass-rate-label {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 2px;
+  .hint b { color: var(--ink); }
+
+  .empty {
+    color: var(--muted); text-align: center; padding: 56px 20px; font-size: 14px;
+    border: 1px dashed var(--hairline); border-radius: 12px;
+  }
+  .empty b { color: var(--ink-2); font-weight: 500; }
+  code { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+
+  /* ---------- narrow screens ---------- */
+  @media (max-width: 900px) {
+    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 760px) {
+    header { padding: 10px 16px; gap: 10px; }
+    .tabs { order: 3; }
+    .app-shell { flex-direction: column; }
+    .sidebar {
+      position: static; width: 100%;
+      flex-direction: row; overflow-x: auto; gap: 6px;
+      padding: 14px 16px 4px;
+      scrollbar-width: none;
+    }
+    .sidebar::-webkit-scrollbar { display: none; }
+    .side-title, .side-legend { display: none; }
+    .side-item { flex: none; width: auto; min-width: 128px; background: var(--surface); border-color: var(--hairline); }
+    .main-content { padding: 14px 16px 32px; }
+    .search { max-width: none; flex-basis: 100%; }
+    select.control { flex: 1 1 auto; max-width: none; }
+    .kpis { gap: 10px; }
+    .tile { padding: 12px 14px; }
+    .tile-value { font-size: 22px; }
+    .hero { grid-template-columns: 1fr; padding: 16px 18px; }
+    .hero-figure { font-size: 48px; }
+    .card-head { flex-wrap: wrap; row-gap: 6px; }
+    .when { margin-left: auto; }
+    .tile-sub { align-items: flex-start; }
+    .tile-sub span:last-child { white-space: normal; overflow: visible; }
+    .tile-sub .status-dot { margin-top: 4px; }
+    .summary { order: 5; flex-basis: 100%; white-space: normal; overflow-wrap: anywhere; padding-left: 20px; }
+    .test-main { flex-wrap: wrap; }
+    .test-title { flex-basis: 100%; white-space: normal; }
+    .trigger { white-space: normal; overflow-wrap: anywhere; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Webhook Dashboard</h1>
-  <span class="env-badge" id="envBadge" title="Which receiver deployment you're looking at"></span>
-  <div class="tabs">
-    <button class="tab active" id="tabEvents">Webhook Events</button>
-    <button class="tab" id="tabResults">Test Results</button>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h3l2-5 2 10 2-5h3"/></svg>
+    </div>
+    <h1>Webhook Dashboard</h1>
+    <span class="env-pill" id="envPill"><span class="pip"></span><span id="envLabel"></span></span>
   </div>
-  <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">connecting…</span></div>
+  <div class="tabs" role="tablist">
+    <button class="tab active" id="tabEvents" role="tab" aria-selected="true">Live events</button>
+    <button class="tab" id="tabResults" role="tab" aria-selected="false">Test results<span class="tab-live" id="tabLive" hidden title="A test run is in progress"></span></button>
+  </div>
   <div class="spacer"></div>
-  <label id="autoRefreshLabel" style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted);">
-    <input type="checkbox" id="autoScroll" checked style="width:auto;" /> auto-refresh
-  </label>
+  <div class="conn"><span class="dot" id="statusDot"></span><span id="statusText">connecting…</span></div>
+  <label class="toggle"><input type="checkbox" id="autoRefresh" checked /> Auto-refresh</label>
 </header>
 
 <div class="app-shell">
-  <nav class="sidebar" id="sidebar"></nav>
+  <nav class="sidebar" id="sidebar" aria-label="Categories"></nav>
 
   <div class="main-content">
-    <div class="subheader" id="eventsSubheader">
-      <select id="triggerFilter"><option value="">All triggers</option></select>
-      <span class="count" id="count"></span>
-      <div class="spacer"></div>
-      <button id="clearBtn" class="danger">Clear all</button>
-    </div>
-
-    <div class="pass-rate-banner" id="passRateBanner" style="display:none;">
-      <svg class="pass-rate-ring" width="52" height="52" viewBox="0 0 52 52">
-        <circle cx="26" cy="26" r="22" fill="none" stroke-width="5" class="pass-rate-ring__track" />
-        <circle cx="26" cy="26" r="22" fill="none" stroke-width="5" class="pass-rate-ring__value" id="passRateRing" stroke-dasharray="138.2" stroke-dashoffset="138.2" transform="rotate(-90 26 26)" />
-      </svg>
-      <div>
-        <div class="pass-rate-pct" id="passRatePct">0%</div>
-        <div class="pass-rate-label">of automated webhooks passing</div>
+    <!-- ===== Live events ===== -->
+    <section id="eventsView">
+      <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+          <input class="control" type="search" id="searchBox" placeholder="Search uid, guid, message text…" aria-label="Search events" />
+        </div>
+        <select class="control" id="triggerFilter" aria-label="Filter by trigger"><option value="">All triggers</option></select>
+        <label class="chip-toggle" title="user_connection_status_changed fires ambiently for every client connect/disconnect and usually dominates the feed">
+          <input type="checkbox" id="hidePresence" checked /> Hide presence <span class="n" id="presenceCount"></span>
+        </label>
+        <div class="spacer"></div>
+        <span class="count" id="count"></span>
+        <button class="btn danger" id="clearBtn">Clear all</button>
       </div>
-    </div>
 
-    <div class="subheader" id="resultsSubheader" style="display:none;">
-      <div class="stat active" data-cat="" id="statAll"><span class="n" id="statAllN">0</span><span class="l">total</span></div>
-      <div class="stat" data-cat="passed"><span class="dot2 passed"></span><span class="n" id="statPassedN">0</span><span class="l">passed</span></div>
-      <div class="stat" data-cat="failed"><span class="dot2 failed"></span><span class="n" id="statFailedN">0</span><span class="l">failed</span></div>
-      <div class="stat" data-cat="expected-fail"><span class="dot2 expected-fail"></span><span class="n" id="statExpFailN">0</span><span class="l">known issue</span></div>
-      <div class="stat" data-cat="delayed"><span class="dot2 delayed"></span><span class="n" id="statDelayedN">0</span><span class="l">delayed</span></div>
-      <div class="stat" data-cat="skipped"><span class="dot2 skipped"></span><span class="n" id="statSkippedN">0</span><span class="l">skipped</span></div>
-      <div class="stat" data-cat="blocked"><span class="dot2 blocked"></span><span class="n" id="statBlockedN">0</span><span class="l">blocked</span></div>
-      <span class="run-meta" id="runMeta"></span>
-    </div>
+      <div class="kpis" id="kpis">
+        <div class="tile">
+          <div class="tile-label">Events · last hour</div>
+          <div class="tile-value" id="kpiHourValue">0</div>
+          <div class="spark" id="spark" role="img" aria-label="Events per 5 minutes over the last hour"></div>
+          <table class="sr-only" id="sparkTable"></table>
+        </div>
+        <div class="tile">
+          <div class="tile-label">Webhook types fired</div>
+          <div class="tile-value" id="kpiTypesValue">0</div>
+          <div class="tile-sub"><span class="status-dot" style="background:var(--neutral)"></span><span id="kpiTypesSub">distinct triggers seen</span></div>
+        </div>
+        <div class="tile">
+          <div class="tile-label">Duplicate deliveries</div>
+          <div class="tile-value" id="kpiDupValue">0</div>
+          <div class="tile-sub"><span class="status-dot" id="kpiDupDot"></span><span id="kpiDupSub"></span></div>
+        </div>
+        <div class="tile">
+          <div class="tile-label">Side-effect message_sent</div>
+          <div class="tile-value" id="kpiActionValue">0</div>
+          <div class="tile-sub" title="Editing or deleting a message auto-creates an &quot;action&quot; message that fires its own message_sent — a known CometChat bug (edit fires 3, delete fires 1)."><span class="status-dot" id="kpiActionDot"></span><span id="kpiActionSub"></span></div>
+        </div>
+      </div>
 
-    <main>
       <div id="list"></div>
-      <div id="resultsList" style="display:none;"></div>
-      <div class="empty" id="emptyState">No events yet. Trigger an action in CometChat and it'll show up here within a couple seconds.</div>
-      <div class="empty" id="resultsEmptyState" style="display:none;">No test run found yet. Run <code>npx playwright test</code> and this will populate.</div>
-    </main>
+      <div class="empty" id="emptyState" hidden></div>
+    </section>
+
+    <!-- ===== Test results ===== -->
+    <section id="resultsView" hidden>
+      <div class="live" id="liveStrip" hidden aria-live="polite">
+        <div class="live-head">
+          <span class="live-badge"><span class="live-dot"></span><span id="liveBadgeText">Live</span></span>
+          <span id="liveProgress"></span>
+          <span class="live-elapsed" id="liveElapsed"></span>
+        </div>
+        <div class="live-meter" role="progressbar" aria-valuemin="0" aria-label="Tests completed" id="liveMeter"><div class="fill" id="liveFill" style="width:0"></div></div>
+        <div class="live-current" id="liveCurrent"></div>
+      </div>
+      <div class="hero" id="hero" hidden>
+        <div class="hero-figure" id="heroFigure">0%</div>
+        <div class="hero-body">
+          <div class="hero-caption" id="heroCaption"></div>
+          <div class="hero-meter" role="meter" aria-valuemin="0" aria-valuemax="100" id="heroMeter"><div class="fill" id="heroFill" style="width:0"></div></div>
+          <div class="hero-meta" id="heroMeta"></div>
+        </div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+      <div id="resultsList"></div>
+      <div class="empty" id="resultsEmpty" hidden></div>
+    </section>
   </div>
 </div>
 
+<div class="tip" id="tip" role="tooltip"><div class="v"></div><div class="l"></div></div>
+
 <script>
-  const listEl = document.getElementById('list');
-  const emptyEl = document.getElementById('emptyState');
-  const filterEl = document.getElementById('triggerFilter');
-  const countEl = document.getElementById('count');
-  const dotEl = document.getElementById('statusDot');
-  const statusText = document.getElementById('statusText');
-  const autoScroll = document.getElementById('autoScroll');
-  const clearBtn = document.getElementById('clearBtn');
-  const sidebarEl = document.getElementById('sidebar');
+  const $ = (id) => document.getElementById(id);
+  const listEl = $('list');
+  const emptyEl = $('emptyState');
+  const filterEl = $('triggerFilter');
+  const searchEl = $('searchBox');
+  const hidePresenceEl = $('hidePresence');
+  const countEl = $('count');
+  const dotEl = $('statusDot');
+  const statusText = $('statusText');
+  const autoRefresh = $('autoRefresh');
+  const sidebarEl = $('sidebar');
+  const tipEl = $('tip');
 
-  // Shows which receiver deployment this is — each environment (prod-eu,
-  // prod-us, prod-in) has its own dedicated receiver, so this is derived
-  // purely client-side from the URL rather than needing a new env var on
-  // every Render deployment.
-  document.getElementById('envBadge').textContent = window.location.hostname;
+  const PRESENCE_TRIGGERS = ['user_connection_status_changed'];
 
-  const openIds = new Set();
-  const seenEventIds = new Set(); // for the new-arrival highlight flash — see render()
-  let knownTriggers = new Set();
-  let lastRenderKey = '';
+  // ---- per-viewer conveniences (never required: storage can be blocked) ----
+  function loadPref(key, fallback) {
+    try { const v = localStorage.getItem('whd:' + key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; }
+  }
+  function savePref(key, value) {
+    try { localStorage.setItem('whd:' + key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+  }
+  hidePresenceEl.checked = loadPref('hidePresence', true);
 
-  // Category grouping — trigger -> registry category comes from
-  // /trigger-categories.json, generated from src/registry/webhook.registry.ts
-  // (see scripts/generate-trigger-categories.ts) so this never has to be
-  // kept in sync by hand. Sidebar labels/grouping match the CometChat
-  // Dashboard's own webhook trigger tabs (Group / Call & Meeting / Message /
-  // Campaign / User / Moderation) — note Call & Meeting merges this
-  // project's two registry categories (CALLS, MEETINGS) into the one tab
-  // CometChat itself shows, since that's a display-only grouping choice.
+  // ---- environment label ----
+  // Each environment has its own dedicated receiver, so the hostname says
+  // which one this is. The prod-eu receiver predates the per-region naming
+  // (see .env.prod-eu), hence its explicit entry.
+  function deriveEnv(host) {
+    const h = host.toLowerCase();
+    const m = h.match(/prod[-_]?(us|eu|in)/);
+    if (m) return { label: 'PROD-' + m[1].toUpperCase(), prod: true };
+    if (h.includes('staging')) return { label: 'STAGING-US', prod: false };
+    if (h === 'cometchat-webhook-automation.onrender.com') return { label: 'PROD-EU', prod: true };
+    if (h === 'localhost' || h.startsWith('127.')) return { label: 'LOCAL', prod: false };
+    return { label: host, prod: false };
+  }
+  const env = deriveEnv(window.location.hostname);
+  $('envLabel').textContent = env.label;
+  $('envPill').classList.toggle('prod', env.prod);
+  $('envPill').title = window.location.hostname + (env.prod ? ' — production app: tests here have real side effects' : '');
+
+  // ---- categories ----
+  // trigger -> registry category comes from /trigger-categories.json,
+  // generated from src/registry/webhook.registry.ts (see
+  // scripts/generate-trigger-categories.ts). Call & Meeting merges CALLS +
+  // MEETINGS the same way CometChat's own Dashboard tab does.
   const DISPLAY_CATEGORIES = [
-    { key: 'GROUP', label: 'Group', registryCats: ['GROUP'] },
-    { key: 'CALL_MEETING', label: 'Call & Meeting', registryCats: ['CALLS', 'MEETINGS'] },
-    { key: 'MESSAGE', label: 'Message', registryCats: ['MESSAGE'] },
-    { key: 'CAMPAIGN', label: 'Campaign', registryCats: ['CAMPAIGN'] },
-    { key: 'USER', label: 'User', registryCats: ['USER'] },
-    { key: 'MODERATION', label: 'Moderation', registryCats: ['MODERATION'] },
-    { key: 'LEGACY', label: 'Legacy', registryCats: ['LEGACY'] },
+    { key: 'GROUP', label: 'Group', registryCats: ['GROUP'], dirs: ['group'], color: 'var(--cat-group)' },
+    { key: 'CALL_MEETING', label: 'Call & Meeting', registryCats: ['CALLS', 'MEETINGS'], dirs: ['calls', 'meetings'], color: 'var(--cat-call)' },
+    { key: 'MESSAGE', label: 'Message', registryCats: ['MESSAGE'], dirs: ['message'], color: 'var(--cat-message)' },
+    { key: 'CAMPAIGN', label: 'Campaign', registryCats: ['CAMPAIGN'], dirs: ['campaign'], color: 'var(--cat-campaign)' },
+    { key: 'USER', label: 'User', registryCats: ['USER'], dirs: ['user'], color: 'var(--cat-user)' },
+    { key: 'MODERATION', label: 'Moderation', registryCats: ['MODERATION'], dirs: ['moderation'], color: 'var(--cat-moderation)' },
+    { key: 'LEGACY', label: 'Legacy', registryCats: ['LEGACY'], dirs: ['legacy'], color: 'var(--cat-legacy)' },
+    { key: 'NOTIFICATION', label: 'Notification', registryCats: ['NOTIFICATION'], dirs: ['notification'], color: 'var(--cat-notification)' },
   ];
-  const CATEGORY_COLORS = {
-    GROUP: '#6c8cff',
-    CALL_MEETING: '#ff9d5c',
-    MESSAGE: '#33c07a',
-    CAMPAIGN: '#ff6ec7',
-    USER: '#5cd9ff',
-    MODERATION: '#e2a33d',
-    LEGACY: '#a794ff',
-    OTHER: '#8b91a7',
-  };
-  let triggerToCategory = {}; // trigger name -> registry category, for grouping LIVE events (collision-resolved, see generate-trigger-categories.ts)
-  let categoryTotals = {}; // registry category -> how many webhooks are REGISTERED there, no collision resolution
-  let selectedCategory = ''; // '' = All
+  const catByKey = Object.fromEntries(DISPLAY_CATEGORIES.map((c) => [c.key, c]));
+  const colorOf = (key) => (catByKey[key] ? catByKey[key].color : 'var(--cat-other)');
+  const labelOf = (key) => (catByKey[key] ? catByKey[key].label : key === 'SHARED' ? 'Cross-cutting' : 'Other');
 
-  function displayCategoryOf(trigger) {
+  let triggerToCategory = {};
+  let categoryTotals = {};
+  let selectedCategory = '';
+
+  // message_delivery_receipt / message_read_receipt are the 2 trigger names
+  // Legacy shares with Modern (see legacy.registry.ts). The static map can
+  // only default them to Message, but the payloads are structurally
+  // distinguishable: Modern nests under data.body, Legacy's fields sit flat
+  // under data (data.receiptType etc.). Live-verified 2026-09-15.
+  const AMBIGUOUS_LEGACY_MESSAGE_TRIGGERS = ['message_delivery_receipt', 'message_read_receipt'];
+
+  function displayCategoryOf(trigger, payload) {
+    if (payload && AMBIGUOUS_LEGACY_MESSAGE_TRIGGERS.includes(trigger)) {
+      return payload.data && payload.data.body !== undefined ? 'MESSAGE' : 'LEGACY';
+    }
     const registryCat = triggerToCategory[trigger];
     const found = DISPLAY_CATEGORIES.find((c) => c.registryCats.includes(registryCat));
     return found ? found.key : 'OTHER';
   }
 
-  // Total registered webhooks per display category, straight from the
-  // registry's own per-category counts — deliberately NOT derived from
-  // triggerToCategory, which collapses the 2 trigger names Legacy shares
-  // with Message down to whichever one wins the collision. Legacy is
-  // correctly 5 here even though only 3 of its names are ever uniquely
-  // attributable in a live event.
+  // Registered totals straight from the registry — deliberately not derived
+  // from triggerToCategory, which collapses Legacy's 2 shared names.
   function totalsByDisplayCategory() {
     const totals = {};
-    for (const c of DISPLAY_CATEGORIES) {
-      totals[c.key] = c.registryCats.reduce((sum, rc) => sum + (categoryTotals[rc] || 0), 0);
-    }
+    for (const c of DISPLAY_CATEGORIES) totals[c.key] = c.registryCats.reduce((s, rc) => s + (categoryTotals[rc] || 0), 0);
     return totals;
   }
 
-  function renderSidebar(events) {
-    // "Fired" = how many DISTINCT webhook types have shown up at least
-    // once in history, not raw event volume — e.g. 40 message_sent events
-    // still only count as 1 toward Message's fired total. That's what
-    // makes "3/3" a meaningful coverage signal instead of just noise.
-    const firedTriggersByCategory = {};
-    const allFiredTriggers = new Set();
-    for (const e of events) {
-      if (!e.trigger) continue;
-      allFiredTriggers.add(e.trigger);
-      const key = displayCategoryOf(e.trigger);
-      if (!firedTriggersByCategory[key]) firedTriggersByCategory[key] = new Set();
-      firedTriggersByCategory[key].add(e.trigger);
-    }
-    const totals = totalsByDisplayCategory();
-    const grandTotal = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
-
-    const items = [{ key: '', label: 'All', fired: allFiredTriggers.size, total: grandTotal }].concat(
-      DISPLAY_CATEGORIES.map((c) => ({
-        key: c.key,
-        label: c.label,
-        fired: (firedTriggersByCategory[c.key] || new Set()).size,
-        total: totals[c.key] || 0,
-      }))
-    );
-    if (firedTriggersByCategory.OTHER) {
-      items.push({ key: 'OTHER', label: 'Other', fired: firedTriggersByCategory.OTHER.size, total: null });
-    }
-
-    sidebarEl.innerHTML = items
-      .map((it) => {
-        const pct = it.total ? Math.round((100 * it.fired) / it.total) : it.key === '' ? Math.round((100 * it.fired) / (grandTotal || 1)) : 0;
-        // Fully covered categories turn green (matching the pass-rate
-        // ring's own 100% = --ok convention) instead of their normal
-        // category color — a clear "done" signal at a glance.
-        const isComplete = pct === 100 && (it.total || (it.key === '' && grandTotal));
-        const color = isComplete ? 'var(--ok)' : CATEGORY_COLORS[it.key] || 'var(--accent)';
-        return `
-        <button class="sidebar-item ${selectedCategory === it.key ? 'active' : ''}" data-cat="${it.key}">
-          <div class="sidebar-item-row">
-            <span>${escapeHtml(it.label)}</span>
-            <span class="sidebar-count">${it.total == null ? it.fired : it.fired + '/' + it.total}</span>
-          </div>
-          <div class="sidebar-progress"><div class="sidebar-progress__fill" style="width:${pct}%; background:${color};"></div></div>
-        </button>`;
-      })
-      .join('');
+  // ---- formatting ----
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
-
-  fetch('/trigger-categories.json')
-    .then((r) => r.json())
-    .then((data) => {
-      triggerToCategory = data.triggerToCategory || {};
-      categoryTotals = data.categoryTotals || {};
-      lastRenderKey = '';
-      poll(true);
-    })
-    .catch(() => {}); // categorization is a nice-to-have — events still render fine without it, just all under "Other"
-
-  function fmtTime(ms) {
+  function fmtClock(ms) {
     const d = new Date(ms);
     return d.toLocaleTimeString(undefined, { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
   }
-
-  function fmtRelativeTime(ms) {
-    const diffSec = Math.max(0, Math.round((Date.now() - ms) / 1000));
-    if (diffSec < 5) return 'just now';
-    if (diffSec < 60) return diffSec + 's ago';
-    const diffMin = Math.round(diffSec / 60);
-    if (diffMin < 60) return diffMin + 'm ago';
-    const diffHr = Math.round(diffMin / 60);
-    if (diffHr < 24) return diffHr + 'h ago';
-    return Math.round(diffHr / 24) + 'd ago';
+  function fmtAgo(ms) {
+    const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (s < 5) return 'just now';
+    if (s < 60) return s + 's ago';
+    const m = Math.round(s / 60);
+    if (m < 60) return m + 'm ago';
+    const h = Math.round(m / 60);
+    if (h < 24) return h + 'h ago';
+    return Math.round(h / 24) + 'd ago';
   }
-
-  function escapeHtml(str) {
-    return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function fmtDuration(ms) {
+    if (ms == null) return '';
+    if (ms < 1000) return ms + 'ms';
+    const s = ms / 1000;
+    if (s < 60) return s.toFixed(1) + 's';
+    const m = Math.floor(s / 60);
+    const rem = Math.round(s - m * 60);
+    return m + 'm ' + String(rem).padStart(2, '0') + 's';
   }
-
+  function compact(n) {
+    if (n < 1000) return String(n);
+    if (n < 1e6) return (n / 1000).toFixed(n < 10000 ? 1 : 0).replace(/\.0$/, '') + 'K';
+    return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
   function highlightJsonString(json) {
-    const escaped = escapeHtml(json);
-    return escaped.replace(
-      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?([eE][+-]?\d+)?)/g,
+    return escapeHtml(json).replace(
+      /(&quot;(\\u[a-zA-Z0-9]{4}|\\[^u]|(?!&quot;).)*?&quot;(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?([eE][+-]?\d+)?)/g,
       (match) => {
         let cls = 'n';
-        if (/^"/.test(match)) {
-          cls = /:$/.test(match) ? 'k' : 's';
-        } else if (/true|false|null/.test(match)) {
-          cls = 'b';
-        }
+        if (match.startsWith('&quot;')) cls = /:$/.test(match) ? 'k' : 's';
+        else if (/true|false|null/.test(match)) cls = 'b';
         return `<span class="${cls}">${match}</span>`;
       }
     );
   }
+  const highlightJson = (obj) => highlightJsonString(JSON.stringify(obj, null, 2));
 
-  function highlightJson(obj) {
-    return highlightJsonString(JSON.stringify(obj, null, 2));
-  }
-
-  /**
-   * Failure/skip reasons are plain strings that often *contain* a raw JSON
-   * error body pasted inline (e.g. CometChat REST errors:
-   * 'POST /messages failed: 403 {"error":{...}}') rather than being pure
-   * JSON themselves. Finds and syntax-highlights just the embedded JSON
-   * part, pretty-printed, while leaving the surrounding message as plain
-   * text — falls back to plain escaped text if there's no valid JSON to
-   * find, so timeout-style messages (no JSON at all) still render fine.
-   */
+  // Failure/skip reasons often embed a raw JSON error body after a plain
+  // prefix ('POST /messages failed: 403 {...}'): pretty-print just that part.
   function formatReason(text) {
     if (!text) return '';
-    const jsonStart = text.indexOf('{');
-    if (jsonStart === -1) return escapeHtml(text);
-
-    const prefix = text.slice(0, jsonStart);
-    const jsonPart = text.slice(jsonStart);
+    const start = text.indexOf('{');
+    if (start === -1) return escapeHtml(text);
     try {
-      const parsed = JSON.parse(jsonPart);
-      const pretty = JSON.stringify(parsed, null, 2);
-      return escapeHtml(prefix) + highlightJsonString(pretty);
+      return escapeHtml(text.slice(0, start)) + highlightJsonString(JSON.stringify(JSON.parse(text.slice(start)), null, 2));
     } catch {
       return escapeHtml(text);
     }
   }
 
-  function summarize(payload) {
+  // ---- human-readable event summaries ----
+  // Returns pre-escaped HTML. Every payload-derived value goes through
+  // escapeHtml: payloads are untrusted (anyone who can message the app can
+  // put arbitrary text in them).
+  const who = (v) => `<span class="who">${escapeHtml(v)}</span>`;
+  function clip(s, n = 70) {
+    s = String(s);
+    return s.length > n ? s.slice(0, n - 1) + '…' : s;
+  }
+  function isActionMessage(e) {
+    const m = e.payload && e.payload.data && e.payload.data.message;
+    return e.trigger === 'message_sent' && m && m.category === 'action';
+  }
+  function describeEvent(e) {
+    const t = e.trigger || '';
+    const d = (e.payload && e.payload.data) || {};
     try {
-      const keys = Object.keys(payload.data || {});
-      return keys.length ? keys.join(', ') : JSON.stringify(payload).slice(0, 80);
-    } catch {
-      return '';
-    }
+      if (d.message) {
+        const m = d.message;
+        const route = `${who(m.sender || '?')} → ${who(m.receiver || '?')}`;
+        if (m.category === 'action') {
+          const act = m.data && m.data.action;
+          return `${route} · auto-generated <b>${escapeHtml(act || 'action')}</b> action message #${escapeHtml(m.id)}`;
+        }
+        const text = m.data && m.data.text;
+        return `${route} · #${escapeHtml(m.id)}` + (text ? ` · <span class="quote">“${escapeHtml(clip(text))}”</span>` : '');
+      }
+      if (t.startsWith('group_') && d.group) {
+        const g = `group ${who(d.group.guid)}`;
+        const by = d.by && d.by.uid;
+        const members = d.members ? Object.keys(d.members) : [];
+        if (t === 'group_created') return `${g} · owner ${who(d.group.owner || members[0] || '?')}`;
+        if (t === 'group_owner_transferred') return `${g} · new owner ${who(d.group.owner || '?')}` + (d.group.updatedBy ? ` · by ${who(d.group.updatedBy)}` : '');
+        if (t === 'group_member_joined' || t === 'group_member_left') return `${who(members.join(', ') || '?')} ${t.endsWith('joined') ? 'joined' : 'left'} ${g}`;
+        return g + (by ? ` · by ${who(by)}` : '') + (members.length ? ` · member ${who(members.join(', '))}` : '');
+      }
+      if (d.conversation) {
+        const c = d.conversation;
+        const actor = t.endsWith('unpinned') ? c.unpinnedBy : c.pinnedBy;
+        return `${who(actor || '?')} ${t.endsWith('unpinned') ? 'unpinned' : 'pinned'} conversation with ${who(c.conversationWith || c.conversationId || '?')}`;
+      }
+      if (t === 'user_connection_status_changed' && d.user) {
+        const action = d.currentConnection && d.currentConnection.action;
+        return `${who(d.user.uid)} ${escapeHtml(action || d.status || 'changed')}`;
+      }
+      if (t === 'after_connection_status_changed' && d.user) {
+        return `${who(d.user.uid)} ${escapeHtml((d.event && d.event.type) || d.user.status || 'changed')} <span class="quote">(legacy)</span>`;
+      }
+      if (d.body && d.body.messageId != null) {
+        return `${who((d.body.user && d.body.user.uid) || d.sender || '?')} ${escapeHtml(d.body.action || 'receipt')} #${escapeHtml(d.body.messageId)}`;
+      }
+      if (d.receiptType && d.messageId != null) {
+        return `${who(d.receiptSender || '?')} ${escapeHtml(d.receiptType)} #${escapeHtml(d.messageId)} <span class="quote">(legacy)</span>`;
+      }
+      if (d.reaction) {
+        const by = d.reaction.reactedBy && d.reaction.reactedBy.uid;
+        return `${who(by || '?')} ${t.endsWith('removed') ? 'removed' : 'reacted'} ${escapeHtml(d.reaction.reaction || '')} on #${escapeHtml(d.reaction.messageId)}`;
+      }
+      if (d.by && d.users) {
+        return `${who(d.by.uid)} ${t === 'user_unblocked' ? 'unblocked' : 'blocked'} ${who(Object.keys(d.users).join(', '))}`;
+      }
+      if (d.call) {
+        const c = d.call;
+        return `${who(c.sender || '?')} → ${who(c.receiver || '?')} · ${escapeHtml((c.data && c.data.action) || c.status || 'call')}`;
+      }
+      if (d.sessionId) {
+        const occ = d.occupant && d.occupant.uid;
+        return `session ${who(clip(d.sessionId, 28))}` + (occ ? ` · ${who(occ)}` : '');
+      }
+      if (d.to && d.notificationDetails) {
+        const n = d.notificationDetails;
+        return `push to ${who(d.to.uid)} · ${escapeHtml(n.type || '')} from ${who(n.sender || '?')}` + (n.body ? ` · <span class="quote">“${escapeHtml(clip(n.body, 50))}”</span>` : '');
+      }
+      if (d.to && (d.subject || d.smsContent)) {
+        const kind = d.subject ? 'email' : 'sms';
+        return `${kind} to ${who(d.to.uid)}` + (d.senderDetails ? ` from ${who(d.senderDetails.uid)}` : '') + ` · <span class="quote">“${escapeHtml(clip(d.subject || d.smsContent, 50))}”</span>`;
+      }
+      if (t.startsWith('after_campaign_')) {
+        return `campaign ${who(clip(d.name || d.campaignId || '?', 40))} · ${escapeHtml(d.status || '')}` +
+          (d.sentCount != null ? ` · sent ${escapeHtml(d.sentCount)}` : '') + (d.failedCount ? ` · failed ${escapeHtml(d.failedCount)}` : '');
+      }
+      if (t.startsWith('after_push_notification_')) {
+        return `push ${escapeHtml(t.replace('after_push_notification_', ''))}` + (d.receiver ? ` → ${who(d.receiver)}` : '') + (d.channelType ? ` · ${escapeHtml(d.channelType)}` : '');
+      }
+      if (t.startsWith('after_feed_item_')) {
+        return `feed item ${escapeHtml(t.replace('after_feed_item_', ''))}` + (d.receiver ? ` → ${who(d.receiver)}` : '') + (d.status ? ` · ${escapeHtml(d.status)}` : '');
+      }
+      if (t === 'after_notification_created') {
+        return `notification ${who(clip(d.label || d.notificationId || '?', 40))}` + (d.sendMode ? ` · ${escapeHtml(d.sendMode)}` : '');
+      }
+      if (d.sender && d.data && d.data.text != null) {
+        return `${who(d.sender)} → ${who(d.receiver || '?')} · <span class="quote">“${escapeHtml(clip(d.data.text))}”</span> <span class="quote">(legacy)</span>`;
+      }
+    } catch { /* fall through to the key list */ }
+    const keys = Object.keys(d);
+    return `<span class="quote">${escapeHtml(keys.length ? keys.join(', ') : '(no data)')}</span>`;
   }
 
-  function eventId(e) {
-    return e.receivedAt + ':' + (e.trigger || '');
-  }
-
-  // Duplicate-delivery detection: fingerprints an event by whatever
-  // identifying field its payload shape actually carries (message id, group
-  // guid, call id, ...) so two *different* real actions of the same trigger
-  // type (extremely common — e.g. many message_sent events in one run)
-  // don't get flagged, only genuine re-deliveries of the *same* underlying
-  // event. user_connection_status_changed is excluded — it fires ambiently
-  // and legitimately repeats for unrelated sessions, not a duplicate signal.
+  // ---- duplicate-delivery detection ----
+  // Fingerprints an event by the identifying field its payload carries, so
+  // two DIFFERENT actions of one trigger aren't flagged — only re-deliveries
+  // of the same underlying event, landing within DUPLICATE_WINDOW_MS (matches
+  // src/utils/timeout.ts's DUPLICATE_SETTLE_WINDOW_MS plus headroom).
+  // Presence is excluded: it legitimately repeats for unrelated sessions.
   function fingerprint(e) {
-    if (e.trigger === 'user_connection_status_changed') return null;
+    if (PRESENCE_TRIGGERS.includes(e.trigger)) return null;
     const d = e.payload && e.payload.data;
     if (!d) return null;
     if (d.message && d.message.id != null) return 'message:' + d.message.id;
@@ -666,44 +710,42 @@
     if (d.by && d.by.uid && d.users) return 'userstate:' + d.by.uid + ':' + Object.keys(d.users).sort().join(',');
     return null;
   }
-
-  // Matches src/utils/timeout.ts's DUPLICATE_SETTLE_WINDOW_MS (4000) — the
-  // same project-established threshold for "how long to watch for a
-  // redelivery of the same webhook", plus a little headroom. A fingerprint
-  // match on its own isn't enough to call something a duplicate delivery:
-  // some triggers (user_blocked/unblocked, connection status) only carry
-  // identifying fields drawn from this project's small set of fixed test
-  // users, so the SAME fingerprint recurs across every unrelated test run
-  // in history, sometimes hours apart. A real duplicate delivery — the
-  // thing worth flagging — lands close together in time; two coincidentally
-  // matching events from separate runs don't.
   const DUPLICATE_WINDOW_MS = 5000;
-
+  // A redelivery carries the exact same payload. Keying on the fingerprint
+  // alone produced a false positive on real prod-us data: two
+  // moderation_engine_blocked events for message 5977, 4.9s apart, same
+  // text, differing only in data.moderation — two separate evaluations, not
+  // a duplicate. Every genuine duplicate in that data (19 repeated
+  // message_delivery_receipt deliveries, one message acked 6x within 100ms)
+  // was byte-identical, so requiring an identical payload keeps all of them
+  // and drops the false positive.
+  const payloadKeyCache = new Map();
+  function payloadKey(e) {
+    const id = eventId(e);
+    let k = payloadKeyCache.get(id);
+    if (k == null) { k = JSON.stringify(e.payload || {}); payloadKeyCache.set(id, k); }
+    return k;
+  }
   function computeDuplicates(events) {
     const groups = new Map();
     for (const e of events) {
       const fp = fingerprint(e);
       if (fp == null) continue;
-      const key = (e.trigger || '') + '|' + fp;
+      const key = (e.trigger || '') + '|' + fp + '|' + payloadKey(e);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(e);
     }
-    const dupInfo = new Map(); // eventId -> { index, count, deltaMs }
+    const dupInfo = new Map();
     for (const list of groups.values()) {
       if (list.length < 2) continue;
       list.sort((a, b) => a.receivedAt - b.receivedAt);
-      // Cluster into bursts that landed within the window of each other —
-      // only a burst counts as a plausible duplicate delivery, not the
-      // whole historical group sharing a fingerprint.
       let clusterStart = 0;
       for (let i = 1; i <= list.length; i++) {
-        const endOfCluster = i === list.length || list[i].receivedAt - list[i - 1].receivedAt > DUPLICATE_WINDOW_MS;
-        if (endOfCluster) {
+        const end = i === list.length || list[i].receivedAt - list[i - 1].receivedAt > DUPLICATE_WINDOW_MS;
+        if (end) {
           const cluster = list.slice(clusterStart, i);
           if (cluster.length > 1) {
-            cluster.forEach((e, idx) => {
-              dupInfo.set(eventId(e), { index: idx + 1, count: cluster.length, deltaMs: e.receivedAt - cluster[0].receivedAt });
-            });
+            cluster.forEach((e, idx) => dupInfo.set(eventId(e), { index: idx + 1, count: cluster.length, deltaMs: e.receivedAt - cluster[0].receivedAt }));
           }
           clusterStart = i;
         }
@@ -711,41 +753,209 @@
     }
     return dupInfo;
   }
+  function eventId(e) {
+    return (e.id || e.receivedAt) + ':' + (e.trigger || '');
+  }
+
+  // Lists are rebuilt via innerHTML (on toggle, and on each poll that brings
+  // new events), which destroys whatever element had keyboard focus. Put
+  // focus back on the same card's control so keyboard users never lose
+  // their place.
+  function preserveFocus(container, rebuild) {
+    const active = document.activeElement;
+    const card = active && container.contains(active) ? active.closest('.card') : null;
+    const id = card && card.dataset.id;
+    const onCopy = Boolean(active && active.matches('[data-copy], [data-copy-reason]'));
+    rebuild();
+    if (!id) return;
+    const next = [...container.querySelectorAll('.card')].find((c) => c.dataset.id === id);
+    const target = next && (onCopy ? next.querySelector('[data-copy], [data-copy-reason]') : next.querySelector('.card-head'));
+    if (target) target.focus({ preventScroll: true });
+  }
+
+  // ---- shared tooltip (enhances only — every value is also in text/table) ----
+  function showTip(target, value, label) {
+    tipEl.querySelector('.v').textContent = value;
+    tipEl.querySelector('.l').textContent = label;
+    tipEl.style.display = 'block';
+    const r = target.getBoundingClientRect();
+    const tw = tipEl.offsetWidth;
+    const left = Math.min(window.innerWidth - tw - 8, Math.max(8, r.left + r.width / 2 - tw / 2));
+    tipEl.style.left = left + 'px';
+    tipEl.style.top = Math.max(8, r.top - tipEl.offsetHeight - 8) + 'px';
+  }
+  const hideTip = () => { tipEl.style.display = 'none'; };
+  document.addEventListener('pointerover', (ev) => {
+    const t = ev.target.closest('[data-tip-v]');
+    if (t) showTip(t, t.dataset.tipV, t.dataset.tipL || '');
+  });
+  document.addEventListener('pointerout', (ev) => { if (ev.target.closest('[data-tip-v]')) hideTip(); });
+  document.addEventListener('focusin', (ev) => {
+    const t = ev.target.closest('[data-tip-v]');
+    if (t) showTip(t, t.dataset.tipV, t.dataset.tipL || ''); else hideTip();
+  });
+  window.addEventListener('scroll', hideTip, { passive: true });
+
+  // =====================================================================
+  // Live events
+  // =====================================================================
+  const openIds = new Set();
+  const seenEventIds = new Set();
+  const payloadById = new Map();
+  const searchCache = new Map();
+  let knownTriggers = new Set();
+  let lastRenderKey = '';
+  let lastEventsData = [];
+
+  function searchTextOf(e) {
+    const id = eventId(e);
+    let s = searchCache.get(id);
+    if (s == null) {
+      s = ((e.trigger || '') + ' ' + JSON.stringify(e.payload || {})).toLowerCase();
+      searchCache.set(id, s);
+    }
+    return s;
+  }
+
+  // One filter row scopes everything below it: KPIs, sidebar selection and
+  // the list all read from this same slice so their numbers always agree.
+  function sliceEvents(events) {
+    const q = searchEl.value.trim().toLowerCase();
+    const trig = filterEl.value;
+    const hidePresence = hidePresenceEl.checked;
+    return events.filter((e) => {
+      if (hidePresence && PRESENCE_TRIGGERS.includes(e.trigger)) return false;
+      if (selectedCategory && displayCategoryOf(e.trigger, e.payload) !== selectedCategory) return false;
+      if (trig && e.trigger !== trig) return false;
+      if (q && !searchTextOf(e).includes(q)) return false;
+      return true;
+    });
+  }
+
+  function renderEventsSidebar(events) {
+    const firedBy = {};
+    const allFired = new Set();
+    for (const e of events) {
+      if (!e.trigger) continue;
+      allFired.add(e.trigger);
+      const key = displayCategoryOf(e.trigger, e.payload);
+      (firedBy[key] = firedBy[key] || new Set()).add(e.trigger);
+    }
+    const totals = totalsByDisplayCategory();
+    const grand = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+    const items = [{ key: '', label: 'All categories', fired: allFired.size, total: grand, color: 'var(--accent)' }].concat(
+      DISPLAY_CATEGORIES.map((c) => ({ key: c.key, label: c.label, fired: (firedBy[c.key] || new Set()).size, total: totals[c.key] || 0, color: c.color }))
+    );
+    if (firedBy.OTHER) items.push({ key: 'OTHER', label: 'Other', fired: firedBy.OTHER.size, total: null, color: 'var(--cat-other)' });
+
+    sidebarEl.innerHTML =
+      `<div class="side-title">Coverage · types fired</div>` +
+      items
+        .map((it) => {
+          const pct = it.total ? Math.min(100, Math.round((100 * it.fired) / it.total)) : 0;
+          const complete = it.total && it.fired >= it.total;
+          return `
+          <button class="side-item ${selectedCategory === it.key ? 'active' : ''}" data-cat="${escapeHtml(it.key)}">
+            <div class="side-row">
+              <span class="name">${it.key ? `<span class="swatch" style="background:${it.color}"></span>` : ''}${escapeHtml(it.label)}</span>
+              ${complete ? '<span class="check" title="Every registered type has fired">✓ all</span>' : ''}
+              <span class="num">${it.total == null ? it.fired : it.fired + '/' + it.total}</span>
+            </div>
+            <div class="meter"><div class="track"><div class="fill" style="width:${pct}%; background:${it.color}"></div></div></div>
+          </button>`;
+        })
+        .join('');
+  }
+
+  function renderKpis(slice, dupInfo) {
+    // Events per 5 min over the last hour — 12 columns, the stat-tile trend.
+    const BUCKET = 5 * 60 * 1000, N = 12;
+    const now = Date.now();
+    const start = now - N * BUCKET;
+    const buckets = new Array(N).fill(0);
+    let inHour = 0;
+    for (const e of slice) {
+      if (e.receivedAt < start) continue;
+      buckets[Math.min(N - 1, Math.floor((e.receivedAt - start) / BUCKET))]++;
+      inHour++;
+    }
+    $('kpiHourValue').textContent = compact(inHour);
+    const max = Math.max(1, ...buckets);
+    const hhmm = (ms) => new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+    $('spark').innerHTML = buckets
+      .map((v, i) => {
+        const from = start + i * BUCKET;
+        const label = i === N - 1 ? `${hhmm(from)}–now` : `${hhmm(from)}–${hhmm(from + BUCKET)}`;
+        return `<div class="col ${i === N - 1 ? 'now' : ''} ${v === 0 ? 'zero' : ''}" tabindex="0"
+                  data-tip-v="${v} event${v === 1 ? '' : 's'}" data-tip-l="${escapeHtml(label)}">
+                  <div class="bar" style="height:${Math.max(0, Math.round((100 * v) / max))}%"></div></div>`;
+      })
+      .join('');
+    $('spark').setAttribute('aria-label', `Events per 5 minutes over the last hour: ${buckets.join(', ')}`);
+    $('sparkTable').innerHTML =
+      '<caption>Events per 5-minute window, last hour</caption><tr><th>Window start</th><th>Events</th></tr>' +
+      buckets.map((v, i) => `<tr><td>${hhmm(start + i * BUCKET)}</td><td>${v}</td></tr>`).join('');
+
+    // Distinct webhook types in the slice, against what's registered.
+    const types = new Set(slice.map((e) => e.trigger).filter(Boolean));
+    const totals = totalsByDisplayCategory();
+    const denom = selectedCategory ? totals[selectedCategory] : Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+    $('kpiTypesValue').innerHTML = `${types.size}${denom ? `<span class="of"> / ${denom}</span>` : ''}`;
+    $('kpiTypesSub').textContent = selectedCategory ? `registered in ${labelOf(selectedCategory)}` : 'registered webhook types';
+
+    // Exactly-once: every delivery after the first of a fingerprinted burst.
+    let extra = 0;
+    for (const e of slice) {
+      const d = dupInfo.get(eventId(e));
+      if (d && d.index > 1) extra++;
+    }
+    $('kpiDupValue').textContent = compact(extra);
+    $('kpiDupDot').style.background = extra ? 'var(--critical)' : 'var(--good)';
+    $('kpiDupSub').textContent = extra ? 'identical payload redelivered' : 'none detected — exactly-once holds';
+
+    const actions = slice.filter(isActionMessage).length;
+    $('kpiActionValue').textContent = compact(actions);
+    $('kpiActionDot').style.background = actions ? 'var(--serious)' : 'var(--good)';
+    $('kpiActionSub').textContent = actions ? 'from edit/delete action messages' : 'none in this view';
+  }
 
   function renderEventCard(e, dupInfo, newIds) {
     const id = eventId(e);
     const open = openIds.has(id);
     const dup = dupInfo.get(id);
-    const isNew = newIds.has(id);
-    const color = CATEGORY_COLORS[displayCategoryOf(e.trigger)] || CATEGORY_COLORS.OTHER;
-    const dupBadge = dup
-      ? `<span class="dup-badge" title="Same ${escapeHtml(e.trigger)} event delivered ${dup.count} times (this is delivery ${dup.index}, ${dup.deltaMs}ms after the first) — possible duplicate delivery">⚠ ${dup.index}/${dup.count} duplicate</span>`
-      : '';
+    const cat = displayCategoryOf(e.trigger, e.payload);
+    payloadById.set(id, e.payload);
+    const flags = [];
+    if (dup) {
+      flags.push(`<span class="flag" data-tip-v="Delivery ${dup.index} of ${dup.count}" data-tip-l="${escapeHtml(`Identical payload, +${dup.deltaMs}ms after the first`)}"><span class="status-dot" style="background:var(--critical)"></span>duplicate ${dup.index}/${dup.count}</span>`);
+    }
+    if (isActionMessage(e)) {
+      flags.push(`<span class="flag" data-tip-v="Side-effect message_sent" data-tip-l="Auto-generated by an edit/delete — known CometChat bug"><span class="status-dot" style="background:var(--serious)"></span>side effect</span>`);
+    }
     return `
-    <div class="event ${open ? 'open' : ''} ${dup ? 'dup' : ''} ${isNew ? 'event--new' : ''}" data-id="${id}" style="border-left: 3px solid ${color};">
-      <div class="event-head" onclick="window.__toggle('${id}')">
-        <span class="chevron">▶</span>
-        <span class="badge">${escapeHtml(e.trigger || 'unknown')}</span>
-        <span class="time" title="Relative time refreshes when new events arrive">${fmtRelativeTime(e.receivedAt)} · ${fmtTime(e.receivedAt)}</span>
-        ${dupBadge}
-        <span class="summary">${escapeHtml(summarize(e.payload))}</span>
-      </div>
-      <div class="event-body">
-        <pre>${highlightJson(e.payload)}</pre>
-        <div class="copy-row">
-          <button onclick='window.__copy(${JSON.stringify(JSON.stringify(e.payload))})'>Copy JSON</button>
-        </div>
+    <div class="card ${open ? 'open' : ''} ${dup ? 'dup' : ''} ${newIds.has(id) ? 'card--new' : ''}" data-id="${escapeHtml(id)}">
+      <button class="card-head" type="button" aria-expanded="${open}">
+        <span class="cat-bar" style="background:${colorOf(cat)}" title="${escapeHtml(labelOf(cat))}"></span>
+        <span class="chev" aria-hidden="true">▶</span>
+        <span class="trigger">${escapeHtml(e.trigger || 'unknown')}</span>
+        ${flags.join('')}
+        <span class="summary">${describeEvent(e)}</span>
+        <span class="when" data-ts="${e.receivedAt}" title="${escapeHtml(fmtClock(e.receivedAt))}">${fmtAgo(e.receivedAt)}</span>
+      </button>
+      <div class="card-body">
+        <pre>${open ? highlightJson(e.payload) : ''}</pre>
+        <div class="card-foot"><button class="btn small" data-copy="${escapeHtml(id)}">Copy JSON</button></div>
       </div>
     </div>`;
   }
 
   function render(events) {
-    renderSidebar(events);
+    // The sidebar is shared between tabs; the events poll keeps running on
+    // the Results tab and must not clobber that tab's own sidebar.
+    if (activeTab === 'events') renderEventsSidebar(events);
 
-    // Tracked against the FULL event set (not the filtered view) and
-    // updated on every poll regardless of whether we go on to re-render —
-    // otherwise switching filters later would make already-arrived events
-    // flash as "new" just because they weren't visible when they landed.
+    // Tracked against the FULL set so switching filters never makes
+    // already-arrived events flash as "new".
     const newIds = new Set();
     for (const e of events) {
       const id = eventId(e);
@@ -753,294 +963,454 @@
       seenEventIds.add(id);
     }
 
-    const catFiltered = selectedCategory ? events.filter((e) => displayCategoryOf(e.trigger) === selectedCategory) : events;
-    const filter = filterEl.value;
-    const filtered = filter ? catFiltered.filter((e) => e.trigger === filter) : catFiltered;
+    const presence = events.filter((e) => PRESENCE_TRIGGERS.includes(e.trigger)).length;
+    $('presenceCount').textContent = presence ? compact(presence) : '';
 
-    countEl.textContent = filtered.length + (filter || selectedCategory ? ` of ${events.length}` : '') + ' event' + (events.length === 1 ? '' : 's');
-    // Gated on activeTab, not just "is there data" — render() can run while
-    // the Results tab is showing (e.g. Clear all polls both stores
-    // together), and this element must stay hidden unless Events is
-    // actually the visible tab, or both empty-states can show at once.
-    emptyEl.style.display = activeTab === 'events' && !filtered.length ? 'block' : 'none';
+    const slice = sliceEvents(events);
+    // Duplicates are real regardless of the current filter, so compute over the full set.
+    const dupInfo = computeDuplicates(events);
+    renderKpis(slice, dupInfo);
 
-    const dupInfo = computeDuplicates(events); // computed over the FULL set — a duplicate delivery is real regardless of which filter is currently applied
+    countEl.textContent = `${compact(slice.length)}${slice.length !== events.length ? ' of ' + compact(events.length) : ''} event${events.length === 1 ? '' : 's'}`;
 
-    const renderKey =
-      filtered.map(eventId).join('|') + '|' + [...openIds].join(',') + '|' + selectedCategory + '|' + [...dupInfo.keys()].join(',');
+    if (activeTab === 'events') {
+      if (!events.length) {
+        emptyEl.innerHTML = '<b>No events yet.</b><br />Trigger an action in CometChat and it shows up here within a couple of seconds.';
+        emptyEl.hidden = false;
+      } else if (!slice.length) {
+        emptyEl.innerHTML = '<b>Nothing matches this view.</b><br />Try clearing the search, trigger filter or category' + (hidePresenceEl.checked && presence ? ', or show presence events.' : '.');
+        emptyEl.hidden = false;
+      } else {
+        emptyEl.hidden = true;
+      }
+    }
+
+    const renderKey = slice.map(eventId).join('|') + '|' + [...openIds].join(',') + '|' + [...dupInfo.keys()].join(',');
     if (renderKey === lastRenderKey) return;
     lastRenderKey = renderKey;
 
-    listEl.innerHTML = filtered
-      .slice()
-      .reverse()
-      .map((e) => renderEventCard(e, dupInfo, newIds))
-      .join('');
+    payloadById.clear();
+    const MAX = 400; // keep the DOM light; search/filters reach the rest
+    const shown = slice.slice(-MAX).reverse();
+    preserveFocus(listEl, () => {
+      listEl.innerHTML =
+        shown.map((e) => renderEventCard(e, dupInfo, newIds)).join('') +
+        (slice.length > MAX ? `<div class="empty" style="padding:18px">Showing the newest ${MAX} of ${compact(slice.length)} — narrow with search or filters.</div>` : '');
+    });
   }
 
-  // Pure client-side interactions (expand a card, pick a category, change
-  // the trigger filter) re-render instantly from whatever's already
-  // loaded — they never need to wait on a network round-trip just to
-  // reflect a UI-only state change. The 1.5s background poll() keeps
-  // lastEventsData fresh regardless of which of these was last touched.
   function rerender() {
     lastRenderKey = '';
     render(lastEventsData);
   }
 
-  window.__toggle = (id) => {
-    if (openIds.has(id)) openIds.delete(id);
-    else openIds.add(id);
-    rerender();
-  };
-
-  sidebarEl.addEventListener('click', (ev) => {
-    const btn = ev.target.closest('.sidebar-item');
-    if (!btn) return;
-    selectedCategory = btn.dataset.cat;
-    if (activeTab !== 'events') setTab('events');
+  listEl.addEventListener('click', (ev) => {
+    const copy = ev.target.closest('[data-copy]');
+    if (copy) {
+      navigator.clipboard.writeText(JSON.stringify(payloadById.get(copy.dataset.copy), null, 2)).catch(() => {});
+      copy.textContent = 'Copied';
+      setTimeout(() => { copy.textContent = 'Copy JSON'; }, 1200);
+      return;
+    }
+    const head = ev.target.closest('.card-head');
+    if (!head) return;
+    const id = head.closest('.card').dataset.id;
+    if (openIds.has(id)) openIds.delete(id); else openIds.add(id);
     rerender();
   });
 
-  window.__copy = (json) => {
-    navigator.clipboard.writeText(json).catch(() => {});
-  };
+  sidebarEl.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.side-item');
+    if (!btn) return;
+    if (activeTab === 'events') {
+      selectedCategory = btn.dataset.cat;
+      rerender();
+    } else {
+      resultsArea = btn.dataset.area;
+      lastResultsRenderKey = '';
+      lastSidebarKey = '';
+      lastStatsKey = '';
+      renderResults(lastResultsData);
+    }
+  });
 
   function updateFilterOptions(events) {
     const triggers = new Set(events.map((e) => e.trigger).filter(Boolean));
     let changed = triggers.size !== knownTriggers.size;
-    if (!changed) {
-      for (const t of triggers) if (!knownTriggers.has(t)) { changed = true; break; }
-    }
+    if (!changed) for (const t of triggers) if (!knownTriggers.has(t)) { changed = true; break; }
     if (!changed) return;
     knownTriggers = triggers;
     const current = filterEl.value;
-    const options = ['<option value="">All triggers</option>']
-      .concat([...triggers].sort().map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`));
-    filterEl.innerHTML = options.join('');
+    filterEl.innerHTML = ['<option value="">All triggers</option>']
+      .concat([...triggers].sort().map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`))
+      .join('');
     filterEl.value = current;
   }
 
-  let lastEventsData = [];
+  function setConnected(ok) {
+    dotEl.classList.toggle('off', !ok);
+    statusText.textContent = ok ? 'Connected' : 'Disconnected';
+  }
 
-  async function poll(force) {
+  async function poll() {
     try {
       const res = await fetch('/webhook/history');
       const json = await res.json();
-      dotEl.classList.remove('off');
-      statusText.textContent = 'connected';
-      lastEventsData = json.events;
-      updateFilterOptions(json.events);
-      render(json.events);
-    } catch (err) {
-      dotEl.classList.add('off');
-      statusText.textContent = 'disconnected';
+      setConnected(true);
+      lastEventsData = json.events || [];
+      if (searchCache.size > 5000) searchCache.clear();
+      if (payloadKeyCache.size > 5000) payloadKeyCache.clear();
+      updateFilterOptions(lastEventsData);
+      render(lastEventsData);
+    } catch {
+      setConnected(false);
     }
   }
 
   filterEl.addEventListener('change', rerender);
+  let searchTimer;
+  searchEl.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(rerender, 120); });
+  hidePresenceEl.addEventListener('change', () => { savePref('hidePresence', hidePresenceEl.checked); rerender(); });
 
-  clearBtn.addEventListener('click', async () => {
+  $('clearBtn').addEventListener('click', async () => {
     if (!confirm('Clear all stored events and the last test results?')) return;
     await Promise.all([fetch('/webhook/history', { method: 'DELETE' }), fetch('/test-results', { method: 'DELETE' })]);
     openIds.clear();
     openResultIds.clear();
+    seenEventIds.clear();
     lastRenderKey = '';
     lastResultsRenderKey = '';
-    poll(true);
-    pollResults(true);
+    poll();
+    pollResults();
   });
 
-  poll();
-  setInterval(() => { if (autoScroll.checked) poll(); }, 1500);
+  fetch('/trigger-categories.json')
+    .then((r) => r.json())
+    .then((data) => {
+      triggerToCategory = data.triggerToCategory || {};
+      categoryTotals = data.categoryTotals || {};
+      rerender();
+      if (activeTab === 'results') { lastResultsRenderKey = ''; renderResults(lastResultsData); }
+    })
+    .catch(() => {}); // categorization is a nice-to-have — events still render, just under "Other"
 
-  // ---- Test Results tab ----
-
-  const tabEvents = document.getElementById('tabEvents');
-  const tabResults = document.getElementById('tabResults');
-  const eventsSubheader = document.getElementById('eventsSubheader');
-  const resultsSubheader = document.getElementById('resultsSubheader');
-  const resultsListEl = document.getElementById('resultsList');
-  const resultsEmptyEl = document.getElementById('resultsEmptyState');
-  const runMetaEl = document.getElementById('runMeta');
-
+  // =====================================================================
+  // Test results
+  // =====================================================================
+  const resultsListEl = $('resultsList');
+  const resultsEmptyEl = $('resultsEmpty');
   const openResultIds = new Set();
-  let resultsCategoryFilter = '';
+  const reasonById = new Map();
+  let resultsStatus = '';
+  let resultsArea = '';
   let lastResultsRenderKey = '';
+  let lastResultsData = { tests: [], counts: {}, available: false };
+  // Flash rows that arrive while you watch — but not everything on first
+  // load, and restart the "seen" set when a new run begins.
+  const seenResultIds = new Set();
+  let resultsSeeded = false;
+  let lastRunStart = null;
+  let lastSidebarKey = '';
+  let lastStatsKey = '';
   let activeTab = 'events';
+
+  const STATUS_META = {
+    passed: { label: 'Passed', color: 'var(--good)' },
+    failed: { label: 'Failed', color: 'var(--critical)' },
+    'expected-fail': { label: 'Known CometChat bug', color: 'var(--serious)' },
+    delayed: { label: 'Delayed', color: 'var(--warning)' },
+    skipped: { label: 'Skipped', color: 'var(--neutral)' },
+    blocked: { label: 'Blocked', color: 'var(--neutral)' },
+  };
+  const STATUS_ORDER = ['failed', 'expected-fail', 'delayed', 'passed', 'skipped', 'blocked'];
+
+  function areaOfTest(t) {
+    const dir = String(t.file || '').split('/')[0];
+    if (dir === '_shared') return 'SHARED';
+    const c = DISPLAY_CATEGORIES.find((x) => x.dirs.includes(dir));
+    return c ? c.key : 'OTHER';
+  }
 
   function setTab(tab) {
     activeTab = tab;
     const onEvents = tab === 'events';
-    tabEvents.classList.toggle('active', onEvents);
-    tabResults.classList.toggle('active', !onEvents);
-    eventsSubheader.style.display = onEvents ? 'flex' : 'none';
-    resultsSubheader.style.display = onEvents ? 'none' : 'flex';
-    listEl.style.display = onEvents ? '' : 'none';
-    resultsListEl.style.display = onEvents ? 'none' : '';
-    emptyEl.style.display = onEvents && !listEl.children.length ? 'block' : 'none';
-    resultsEmptyEl.style.display = !onEvents && !resultsListEl.children.length ? 'block' : 'none';
-    if (onEvents) document.getElementById('passRateBanner').style.display = 'none';
-    if (!onEvents) pollResults(true);
+    $('tabEvents').classList.toggle('active', onEvents);
+    $('tabResults').classList.toggle('active', !onEvents);
+    $('tabEvents').setAttribute('aria-selected', String(onEvents));
+    $('tabResults').setAttribute('aria-selected', String(!onEvents));
+    $('eventsView').hidden = !onEvents;
+    $('resultsView').hidden = onEvents;
+    hideTip();
+    if (onEvents) rerender();
+    else { lastResultsRenderKey = ''; lastSidebarKey = ''; lastStatsKey = ''; renderResults(lastResultsData); pollResults(); }
   }
-  tabEvents.addEventListener('click', () => setTab('events'));
-  tabResults.addEventListener('click', () => setTab('results'));
+  $('tabEvents').addEventListener('click', () => setTab('events'));
+  $('tabResults').addEventListener('click', () => setTab('results'));
 
-  document.querySelectorAll('.stat').forEach((el) => {
-    el.addEventListener('click', () => {
-      resultsCategoryFilter = el.dataset.cat || '';
-      document.querySelectorAll('.stat').forEach((s) => s.classList.toggle('active', s === el));
-      lastResultsRenderKey = '';
-      renderResults(window.__lastResultsData || { tests: [], counts: {} });
-    });
-  });
+  function renderResultsSidebar(tests) {
+    const byArea = {};
+    for (const t of tests) {
+      const a = areaOfTest(t);
+      const r = (byArea[a] = byArea[a] || { passed: 0, failed: 0, 'expected-fail': 0, delayed: 0, skipped: 0, blocked: 0, total: 0 });
+      r[t.category] = (r[t.category] || 0) + 1;
+      r.total++;
+    }
+    const areas = [{ key: '', label: 'All tests' }]
+      .concat(DISPLAY_CATEGORIES.map((c) => ({ key: c.key, label: c.label })))
+      .concat([{ key: 'SHARED', label: 'Cross-cutting' }])
+      .filter((a) => a.key === '' || byArea[a.key]);
+    const all = tests.reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + 1; return acc; }, {});
 
-  function fmtDuration(ms) {
-    if (ms == null) return '';
-    return ms < 1000 ? ms + 'ms' : (ms / 1000).toFixed(1) + 's';
+    const SEGS = ['passed', 'expected-fail', 'failed', 'delayed'];
+    sidebarEl.innerHTML =
+      `<div class="side-title">Results by category</div>
+       <div class="side-legend">${SEGS.map((s) => `<span><span class="swatch" style="background:${STATUS_META[s].color}"></span>${s === 'expected-fail' ? 'Known bug' : STATUS_META[s].label}</span>`).join('')}</div>` +
+      areas
+        .map((a) => {
+          const r = a.key ? byArea[a.key] : all;
+          const automated = (r.passed || 0) + (r.failed || 0) + (r['expected-fail'] || 0) + (r.delayed || 0);
+          const segs = SEGS.filter((s) => r[s]).map((s) => {
+            const pct = (100 * r[s]) / automated;
+            return `<div class="seg" style="flex:${pct} 1 0; background:${STATUS_META[s].color}"
+                      data-tip-v="${r[s]} ${STATUS_META[s].label.toLowerCase()}" data-tip-l="${escapeHtml(a.label)}"></div>`;
+          });
+          return `
+          <button class="side-item ${resultsArea === a.key ? 'active' : ''}" data-area="${escapeHtml(a.key)}">
+            <div class="side-row">
+              <span class="name">${a.key ? `<span class="swatch" style="background:${colorOf(a.key)}"></span>` : ''}${escapeHtml(a.label)}</span>
+              <span class="num">${r.passed || 0}/${automated}</span>
+            </div>
+            <div class="stack">${segs.length ? segs.join('') : '<div class="empty-track"></div>'}</div>
+          </button>`;
+        })
+        .join('');
   }
 
-  function testRowId(t, i) {
-    return t.file + ':' + t.title + ':' + i;
-  }
+  function renderLive(data) {
+    const live = data.live;
+    const running = Boolean(live && live.running);
+    // Visible from either tab, so a run in progress is never missed.
+    $('tabLive').hidden = !running;
 
-  function categoryLabel(cat) {
-    return { passed: 'passed', failed: 'failed', skipped: 'skipped', 'expected-fail': 'known issue', blocked: 'blocked', delayed: 'delayed' }[cat] || cat;
+    const strip = $('liveStrip');
+    if (!live || (!running && !live.stale)) {
+      strip.hidden = true;
+      return;
+    }
+    strip.hidden = false;
+    strip.classList.toggle('stale', Boolean(live.stale));
+    $('liveBadgeText').textContent = live.stale ? 'Stalled' : 'Live';
+
+    const done = live.completed || 0;
+    const planned = live.planned || 0;
+    const pct = planned ? Math.min(100, Math.round((100 * done) / planned)) : 0;
+    $('liveFill').style.width = pct + '%';
+    $('liveMeter').setAttribute('aria-valuemax', String(planned || 0));
+    $('liveMeter').setAttribute('aria-valuenow', String(done));
+    $('liveProgress').innerHTML = planned
+      ? `<b>${done}</b> of <b>${planned}</b> tests done · ${pct}%`
+      : `<b>${done}</b> tests done`;
+
+    if (data.startTime) {
+      const elapsed = Date.now() - new Date(data.startTime).getTime();
+      $('liveElapsed').textContent = (live.stale ? 'Last update ' : 'Running for ') + fmtDuration(Math.max(0, elapsed));
+    }
+    const cur = live.current;
+    if (live.stale) {
+      $('liveCurrent').textContent = 'No updates for over 5 minutes — the run may have been interrupted.';
+    } else if (cur && cur.title) {
+      $('liveCurrent').innerHTML = `Now running: <b>${escapeHtml(cur.title)}</b> <span class="test-file">${escapeHtml(cur.file)}</span>`;
+    } else {
+      $('liveCurrent').textContent = done ? 'Waiting for the next test…' : 'Run started — waiting for the first test to finish…';
+    }
   }
 
   function renderResults(data) {
-    window.__lastResultsData = data;
-    const counts = data.counts || {};
-    document.getElementById('statAllN').textContent = data.tests.length;
-    document.getElementById('statPassedN').textContent = counts.passed || 0;
-    document.getElementById('statFailedN').textContent = counts.failed || 0;
-    document.getElementById('statExpFailN').textContent = counts['expected-fail'] || 0;
-    document.getElementById('statDelayedN').textContent = counts.delayed || 0;
-    document.getElementById('statSkippedN').textContent = counts.skipped || 0;
-    document.getElementById('statBlockedN').textContent = counts.blocked || 0;
+    lastResultsData = data;
+    renderLive(data);
+    if (activeTab !== 'results') return;
+    const tests = data.tests || [];
+    const running = Boolean(data.live && data.live.running);
 
-    // Pass rate is scoped to "automated" tests only (passed + failed +
-    // known-issue) — blocked/skipped/delayed are excluded: blocked/skipped
-    // are permanent, documented gaps, and delayed means the webhook did
-    // arrive (just after this test's own timeout), so none of the three
-    // should penalize a run's percentage the way a real failure does.
-    const passRateBanner = document.getElementById('passRateBanner');
-    const automated = (counts.passed || 0) + (counts.failed || 0) + (counts['expected-fail'] || 0);
-    if (activeTab === 'results' && data.available !== false && automated > 0) {
-      const pct = Math.round((100 * (counts.passed || 0)) / automated);
-      const RING_CIRCUMFERENCE = 138.2;
-      const ring = document.getElementById('passRateRing');
-      ring.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - pct / 100));
-      ring.style.stroke = pct === 100 ? 'var(--ok)' : pct >= 70 ? 'var(--warn)' : '#e05252';
-      document.getElementById('passRatePct').textContent = pct + '%';
-      passRateBanner.style.display = 'flex';
+    // A new run started: let its rows flash as they arrive.
+    if (data.startTime !== lastRunStart) {
+      if (lastRunStart !== null) seenResultIds.clear();
+      lastRunStart = data.startTime;
+    }
+
+    // Rebuild only on change — a 1.5s rebuild would drop focus and hover state.
+    const sidebarKey = tests.map((t) => t.file + t.category).join('|') + '|' + resultsArea;
+    if (sidebarKey !== lastSidebarKey) {
+      lastSidebarKey = sidebarKey;
+      renderResultsSidebar(tests);
+    }
+
+    const inArea = resultsArea ? tests.filter((t) => areaOfTest(t) === resultsArea) : tests;
+    const c = inArea.reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + 1; return acc; }, {});
+    const passed = c.passed || 0, failed = c.failed || 0, known = c['expected-fail'] || 0;
+    // Pass rate covers automated tests only: blocked/skipped are documented
+    // permanent gaps, and delayed means the webhook did arrive (just late).
+    const automated = passed + failed + known;
+
+    const hero = $('hero');
+    if (data.available !== false && automated > 0) {
+      const pct = Math.round((100 * passed) / automated);
+      $('heroFigure').textContent = pct + '%';
+      const fill = $('heroFill');
+      fill.style.width = pct + '%';
+      fill.style.background = pct === 100 ? 'var(--good)' : pct >= 70 ? 'var(--warning)' : 'var(--critical)';
+      $('heroMeter').setAttribute('aria-valuenow', String(pct));
+      const scope = resultsArea ? ` in ${escapeHtml(labelOf(resultsArea))}` : '';
+      $('heroCaption').innerHTML =
+        `<b>${passed} of ${automated}</b> automated webhook tests passing${scope}${running ? ' so far' : ''}` +
+        (failed ? ` · <b>${failed}</b> failing` : '') +
+        (known ? ` · <b>${known}</b> known CometChat bug${known === 1 ? '' : 's'}` : '');
+      const meta = [];
+      if (data.duration != null && !running) meta.push('Run took ' + fmtDuration(data.duration));
+      if (data.startTime) {
+        const startedMs = new Date(data.startTime).getTime();
+        meta.push('Started ' + new Date(startedMs).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }));
+        meta.push(fmtAgo(startedMs));
+      }
+      // Real separator text, not CSS gap alone — otherwise screen readers announce "8m 26sStarted".
+      $('heroMeta').textContent = meta.join(' · ');
+      hero.hidden = false;
     } else {
-      passRateBanner.style.display = 'none';
+      hero.hidden = true;
     }
 
-    if (data.duration != null) {
-      runMetaEl.textContent = 'last run: ' + (data.duration / 1000).toFixed(1) + 's'
-        + (data.startTime ? ' · ' + new Date(data.startTime).toLocaleTimeString() : '');
+    const statsKey = JSON.stringify(c) + '|' + inArea.length + '|' + resultsStatus;
+    if (statsKey !== lastStatsKey) {
+      lastStatsKey = statsKey;
+      $('stats').innerHTML =
+        `<button class="stat ${resultsStatus === '' ? 'active' : ''}" data-status=""><span class="n">${inArea.length}</span> All</button>` +
+        STATUS_ORDER.map((s) => `<button class="stat ${resultsStatus === s ? 'active' : ''}" data-status="${s}">
+            <span class="status-dot" style="background:${STATUS_META[s].color}"></span><span class="n">${c[s] || 0}</span> ${STATUS_META[s].label}</button>`).join('');
     }
 
-    const filtered = resultsCategoryFilter ? data.tests.filter((t) => t.category === resultsCategoryFilter) : data.tests;
-
-    // Same activeTab gating as render()'s emptyEl above — renderResults()
-    // can run while the Events tab is showing (Clear all polls both stores
-    // together), and this must stay hidden unless Results is the visible tab.
-    const resultsEmptyNeeded = data.available === false || !filtered.length;
-    resultsEmptyEl.style.display = activeTab === 'results' && resultsEmptyNeeded ? 'block' : 'none';
+    const filtered = resultsStatus ? inArea.filter((t) => t.category === resultsStatus) : inArea;
     if (data.available === false) {
-      resultsEmptyEl.textContent = 'No test run found yet. Run npx playwright test and this will populate.';
+      resultsEmptyEl.innerHTML = '<b>No test run found yet.</b><br />Run <code>./run.sh</code> (or <code>npm run test:staging</code>) and results appear here live, test by test.';
+      resultsEmptyEl.hidden = false;
+    } else if (running && !tests.length) {
+      resultsEmptyEl.innerHTML = '<b>Run started.</b><br />Results appear here the moment each test finishes.';
+      resultsEmptyEl.hidden = false;
     } else if (!filtered.length) {
-      resultsEmptyEl.textContent = 'No tests in this category.';
+      resultsEmptyEl.innerHTML = '<b>No tests in this view.</b>';
+      resultsEmptyEl.hidden = false;
+    } else {
+      resultsEmptyEl.hidden = true;
     }
 
-    const renderKey = filtered.map((t, i) => testRowId(t, i) + t.category).join('|') + '|' + [...openResultIds].join(',');
+    const renderKey = filtered.map((t, i) => t.file + t.title + i + t.category).join('|') + '|' + [...openResultIds].join(',');
     if (renderKey === lastResultsRenderKey) return;
     lastResultsRenderKey = renderKey;
 
-    // Order: failed first (most actionable), then expected-fail, then
-    // delayed (worth a look, but the webhook did arrive), then ordinary
-    // skips, then blocked (permanent, known, least actionable), then passed.
-    const order = { failed: 0, 'expected-fail': 1, delayed: 2, skipped: 3, blocked: 4, passed: 5 };
-    const sorted = filtered.slice().sort((a, b) => (order[a.category] ?? 9) - (order[b.category] ?? 9));
-
-    resultsListEl.innerHTML = sorted
-      .map((t, i) => {
-        const id = testRowId(t, i);
+    const rank = Object.fromEntries(STATUS_ORDER.map((s, i) => [s, i]));
+    reasonById.clear();
+    const arrived = new Set();
+    for (const t of tests) {
+      const id = t.file + '::' + t.title;
+      if (resultsSeeded && !seenResultIds.has(id)) arrived.add(id);
+      seenResultIds.add(id);
+    }
+    if (data.available !== false) resultsSeeded = true;
+    preserveFocus(resultsListEl, () => { resultsListEl.innerHTML = filtered
+      .slice()
+      .sort((a, b) => (rank[a.category] ?? 9) - (rank[b.category] ?? 9))
+      .map((t) => {
+        const id = t.file + '::' + t.title;
         const open = openResultIds.has(id);
         const reason = t.error || t.skipReason || t.knownIssueReason;
-        const reasonClass = t.error ? 'error' : 'skip';
         const canExpand = Boolean(reason);
-        // Not a certain diagnosis (no Management API access to check the
-        // actual Dashboard trigger state) — just distinguishes "nothing
-        // arrived at all" from "something arrived but was wrong", since
-        // those currently look identical under one FAILED badge. When the
-        // registry can name the specific Dashboard tab (t.notReceivedLabel,
-        // from receiver/public/trigger-categories.json), the tooltip and
-        // the hint box below name it directly instead of speaking generically.
-        const notReceivedBadge = t.likelyNotReceived
-          ? `<span class="test-badge not-received" title="No webhook arrived at all before the timeout — ${t.notReceivedLabel ? `check the Dashboard's ${escapeHtml(t.notReceivedLabel)} webhook trigger` : 'could be a disabled trigger in the Dashboard'}, or a real regression. Not certain either way without Management API access.">not received?</span>`
+        if (canExpand) reasonById.set(id, reason);
+        const meta = STATUS_META[t.category] || { label: t.category, color: 'var(--neutral)' };
+        const area = areaOfTest(t);
+        // "Not received" can't be diagnosed with certainty without Management
+        // API access — it only distinguishes "nothing arrived" from "arrived
+        // but wrong". t.notReceivedLabel names the Dashboard tab when known.
+        const notReceived = t.likelyNotReceived
+          ? `<span class="flag" data-tip-v="No webhook arrived before the timeout" data-tip-l="${escapeHtml(t.notReceivedLabel ? `Check the Dashboard's ${t.notReceivedLabel} trigger` : 'Possibly a disabled Dashboard trigger')}"><span class="status-dot" style="background:var(--accent)"></span>not received?</span>`
           : '';
-        const hintBox =
-          t.likelyNotReceived && t.notReceivedLabel
-            ? `<div class="hint-box">Check the Dashboard's <b>${escapeHtml(t.notReceivedLabel)}</b> webhook trigger for <b>"${escapeHtml(t.notReceivedTrigger)}"</b> is switched on — no matching event arrived before the timeout below. If it's already on, this is likely a real regression.</div>`
-            : '';
-        // The webhook arrived, just after this test had already given up
-        // waiting — see DELAYED_GRACE_WINDOW_MS in receiver/index.js. Not a
-        // real failure; more a sign the timeout budget for this trigger
-        // might be worth increasing.
-        const delayedBadge =
-          t.category === 'delayed' && t.delayedArrivalMs != null
-            ? `<span class="test-badge delayed" title="A matching webhook arrived ${fmtDuration(t.delayedArrivalMs)} after this test's own timeout — not necessarily a real failure.">+${fmtDuration(t.delayedArrivalMs)} late</span>`
-            : '';
+        const delayed = t.category === 'delayed' && t.delayedArrivalMs != null
+          ? `<span class="flag" data-tip-v="Arrived ${escapeHtml(fmtDuration(t.delayedArrivalMs))} after the timeout" data-tip-l="Not necessarily a real failure"><span class="status-dot" style="background:var(--warning)"></span>+${escapeHtml(fmtDuration(t.delayedArrivalMs))} late</span>`
+          : '';
+        const hint = t.likelyNotReceived && t.notReceivedLabel
+          ? `<div class="hint">Check the Dashboard's <b>${escapeHtml(t.notReceivedLabel)}</b> webhook trigger for <b>“${escapeHtml(t.notReceivedTrigger)}”</b> is switched on — no matching event arrived before the timeout. If it's already on, this is likely a real regression.</div>`
+          : '';
         return `
-        <div class="event ${open ? 'open' : ''}" data-id="${id}">
-          <div class="event-head" ${canExpand ? `onclick="window.__toggleResult('${id}')"` : 'style="cursor:default;"'}>
-            ${canExpand ? '<span class="chevron">▶</span>' : '<span class="chevron" style="visibility:hidden;">▶</span>'}
-            <div class="test-row" style="flex:1; min-width:0;">
-              <span class="test-badge ${t.category}">${categoryLabel(t.category)}</span>
-              ${notReceivedBadge}
-              ${delayedBadge}
-              <span class="test-file">${escapeHtml(t.file)}</span>
+        <div class="card ${open ? 'open' : ''} ${arrived.has(id) ? 'card--new' : ''}" data-id="${escapeHtml(id)}">
+          <button class="card-head ${canExpand ? '' : 'static'}" type="button" ${canExpand ? `aria-expanded="${open}"` : 'tabindex="-1"'}>
+            <span class="cat-bar" style="background:${colorOf(area)}" title="${escapeHtml(labelOf(area))}"></span>
+            <span class="chev" aria-hidden="true" style="${canExpand ? '' : 'visibility:hidden'}">▶</span>
+            <span class="test-main">
+              <span class="flag"><span class="status-dot" style="background:${meta.color}"></span>${escapeHtml(meta.label)}</span>
+              ${notReceived}${delayed}
               <span class="test-title">${escapeHtml(t.title)}</span>
-            </div>
-            <span class="time">${fmtDuration(t.duration)}</span>
-          </div>
-          ${canExpand ? `<div class="event-body">
-            ${hintBox}
-            <pre class="reason-box ${reasonClass}">${formatReason(reason)}</pre>
-            <div class="copy-row">
-              <button onclick='window.__copy(${JSON.stringify(reason)})'>Copy</button>
-            </div>
+              <span class="test-file">${escapeHtml(t.file)}</span>
+            </span>
+            <span class="when">${escapeHtml(fmtDuration(t.duration))}</span>
+          </button>
+          ${canExpand ? `<div class="card-body">${hint}
+            <pre class="reason ${t.error ? 'error' : 'skip'}">${formatReason(reason)}</pre>
+            <div class="card-foot"><button class="btn small" data-copy-reason="${escapeHtml(id)}">Copy</button></div>
           </div>` : ''}
         </div>`;
       })
-      .join('');
+      .join(''); });
   }
 
-  window.__toggleResult = (id) => {
-    if (openResultIds.has(id)) openResultIds.delete(id);
-    else openResultIds.add(id);
+  $('stats').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.stat');
+    if (!b) return;
+    resultsStatus = b.dataset.status;
     lastResultsRenderKey = '';
-    renderResults(window.__lastResultsData || { tests: [], counts: {} });
-  };
+    lastStatsKey = '';
+    renderResults(lastResultsData);
+  });
+
+  resultsListEl.addEventListener('click', (ev) => {
+    const copy = ev.target.closest('[data-copy-reason]');
+    if (copy) {
+      navigator.clipboard.writeText(reasonById.get(copy.dataset.copyReason) || '').catch(() => {});
+      copy.textContent = 'Copied';
+      setTimeout(() => { copy.textContent = 'Copy'; }, 1200);
+      return;
+    }
+    const head = ev.target.closest('.card-head');
+    if (!head || head.classList.contains('static')) return;
+    const id = head.closest('.card').dataset.id;
+    if (openResultIds.has(id)) openResultIds.delete(id); else openResultIds.add(id);
+    lastResultsRenderKey = '';
+    renderResults(lastResultsData);
+  });
 
   async function pollResults() {
     try {
       const res = await fetch('/test-results');
       const json = await res.json();
-      dotEl.classList.remove('off');
-      statusText.textContent = 'connected';
+      setConnected(true);
       renderResults(json);
-    } catch (err) {
-      dotEl.classList.add('off');
-      statusText.textContent = 'disconnected';
+    } catch {
+      setConnected(false);
     }
   }
 
-  setInterval(() => { if (autoScroll.checked && activeTab === 'results') pollResults(); }, 1500);
+  // Relative times drift; refresh just their text rather than rebuilding
+  // the list, so open cards, scroll position and keyboard focus survive.
+  setInterval(() => {
+    for (const el of listEl.querySelectorAll('.when[data-ts]')) el.textContent = fmtAgo(Number(el.dataset.ts));
+  }, 15000);
+
+  poll();
+  pollResults();
+  let tick = 0;
+  setInterval(() => {
+    if (!autoRefresh.checked) return;
+    tick++;
+    poll();
+    if (activeTab === 'results' || tick % 2 === 0) pollResults();
+  }, 1500);
 </script>
 
 </body>

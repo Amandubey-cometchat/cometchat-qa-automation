@@ -83,6 +83,9 @@ export default defineConfig({
     // For CI systems that consume JUnit XML (GitHub Actions test summaries,
     // GitLab/Jenkins test reports) — not read by anything else in this repo.
     ['junit', { outputFile: 'reports/junit/results.xml' }],
+    // Streams each finished test to the receiver so the dashboard updates
+    // live. Inert unless LIVE_RESULTS=1 — see the reporter's header.
+    ['./src/reporting/live-results.reporter.ts'],
   ],
   // No browser project needed — these tests hit REST APIs, not a UI. The
   // one exception (src/clients/sdk.client.ts, driving a real CometChat SDK
