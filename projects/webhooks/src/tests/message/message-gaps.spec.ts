@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test } from '../webhook-guard.fixture';
 import { MESSAGE_REGISTRY } from '../../registry/message.registry';
 
 // Documented gaps within MESSAGE that aren't real tests yet — see

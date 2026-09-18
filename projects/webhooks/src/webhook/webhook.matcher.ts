@@ -86,6 +86,18 @@ export function byPushNotificationId(pushNotificationId: string): WebhookMatcher
   return (p) => p?.data?.pushNotificationId === pushNotificationId;
 }
 
+/**
+ * Matches the auto-generated "action" messages CometChat creates as a side
+ * effect of editing/deleting a message (category: "action", type:
+ * "message", data.action: "edited"|"deleted") — as distinct from a real
+ * user-sent message. Deliberately narrow so a concurrent, unrelated
+ * message_sent from other traffic can't satisfy it. See
+ * src/tests/message/message-edited.spec.ts for why this exists.
+ */
+export function byActionMessage(action: 'edited' | 'deleted'): WebhookMatcher {
+  return (p) => p?.data?.message?.category === 'action' && p?.data?.message?.data?.action === action;
+}
+
 /** email-notification-payload-generated / sms-notification-payload-generated correlate via the notified recipient's uid, per CometChat's docs (data.to.uid) — not yet live-confirmed, see notification.registry.ts. */
 export function byNotificationRecipientUid(uid: string): WebhookMatcher {
   return (p) => p?.data?.to?.uid === uid;

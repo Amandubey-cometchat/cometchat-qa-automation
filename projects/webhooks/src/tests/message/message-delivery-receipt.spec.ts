@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, allowMultiple } from '../webhook-guard.fixture';
 import { sendMessage, markDelivered } from '../../triggers/message/message.triggers';
 import { resetEvents, expectWebhookEvent, matchers } from '../../webhook/webhook.listener';
 import { validateReceipt } from '../../validators/message.validator';
@@ -16,6 +16,8 @@ test.afterEach(async () => {
 });
 
 test('message_delivery_receipt webhook fires when a recipient client acknowledges delivery', async () => {
+  allowMultiple('user_connection_status_changed', 'The SDK client connects and then disconnects — two genuinely separate connection events, not a duplicate delivery.');
+
   const message = await sendMessage({ sender: QA_USER_1, receiver: QA_USER_2, text: uniqueMessageText('delivery-receipt-check') });
 
   await resetEvents();

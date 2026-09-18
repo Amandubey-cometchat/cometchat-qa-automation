@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, allowMultiple } from '../webhook-guard.fixture';
 import { createGroup, deleteGroup, addGroupMember } from '../../triggers/group/group.triggers';
 import { sendMessage, markDelivered } from '../../triggers/message/message.triggers';
 import { resetEvents, expectWebhookEvent, matchers } from '../../webhook/webhook.listener';
@@ -23,6 +23,8 @@ test.afterEach(async () => {
 // per-recipient receipt; this aggregate never fires outside a group, where
 // it means "every member has now acknowledged this message".
 test('message_delivered_to_all webhook fires once every group member has received the message', async () => {
+  allowMultiple('user_connection_status_changed', 'The SDK client connects and then disconnects — two genuinely separate connection events, not a duplicate delivery.');
+
   const guid = uniqueGroupGuid('qa-agg-delivered');
   registerCleanup(() => deleteGroup(guid, QA_USER_1).catch(() => {}));
   await createGroup({ guid, name: 'Aggregate Delivery Test Group', onBehalfOf: QA_USER_1 });

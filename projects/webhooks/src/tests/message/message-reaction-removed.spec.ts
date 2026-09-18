@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test } from '../webhook-guard.fixture';
 import { sendMessage, addReaction, removeReaction } from '../../triggers/message/message.triggers';
 import { resetEvents, expectWebhookEvent, matchers } from '../../webhook/webhook.listener';
 import { validateMessageReactionRemoved } from '../../validators/message.validator';

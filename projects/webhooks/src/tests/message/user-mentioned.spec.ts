@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../webhook-guard.fixture';
 import { mentionUser } from '../../triggers/message/message.triggers';
 import { resetEvents, expectWebhookEvent, matchers } from '../../webhook/webhook.listener';
 import { validateUserMentioned } from '../../validators/message.validator';

@@ -29,3 +29,5 @@ export const NOTIFICATION_TIMEOUT_MS = 90000;
  * per-spec via test.setTimeout().
  */
 export const NOTIFICATION_TEST_TIMEOUT_MS = 120000;
+/** How long to watch for an edit's unwanted side-effect webhooks. The 3 auto-generated "edited" action messages arrived at ~0.1s, ~3.5s and ~3.5s after the edit (prod-us, 2026-09-16) — this window covers the slowest with margin, so the check can't pass just by looking too early. See src/tests/message/message-edited.spec.ts. */
+export const EDIT_SIDE_EFFECT_WINDOW_MS = 8000;
