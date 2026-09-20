@@ -17,6 +17,7 @@ cometchat-automation/
 | Project | What it tests | Start here |
 |---|---|---|
 | [`webhook-automation`](webhook-automation/) | All CometChat webhook triggers across staging, prod-us, prod-eu and prod-in, plus a live receiver dashboard | [README](webhook-automation/README.md) |
+| [`moderation-automation`](moderation-automation/) | CometChat Moderation (blocking, reporting) through the official React sample app's UI — Playwright, Page Object Model | [README](moderation-automation/README.md) |
 
 ## Run a project
 

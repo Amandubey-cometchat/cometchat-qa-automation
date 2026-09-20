@@ -1,0 +1,30 @@
+{
+  "name": "cometchat-moderation-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end CometChat Moderation tests driven through the official React sample app with Playwright (Page Object Model).",
+  "scripts": {
+    "setup:sample-app": "tsx scripts/setup-sample-app.ts",
+    "test": "playwright test",
+    "test:staging": "APP_ENV=staging-us playwright test",
+    "test:prod:eu": "APP_ENV=prod-eu CONFIRM_PROD=yes playwright test",
+    "test:prod:us": "APP_ENV=prod-us CONFIRM_PROD=yes playwright test",
+    "test:prod:in": "APP_ENV=prod-in CONFIRM_PROD=yes playwright test",
+    "report": "playwright show-report reports/html",
+    "typecheck": "tsc --noEmit",
+    "toggles:prod:us": "RUN_TOGGLES=1 APP_ENV=prod-us CONFIRM_PROD=yes playwright test src/tests/toggles",
+    "dashboard": "tsx scripts/build-dashboard.ts",
+    "restore-rules": "tsx scripts/restore-rules.ts",
+    "scenarios:prod:us": "RUN_TOGGLES=1 APP_ENV=prod-us CONFIRM_PROD=yes playwright test src/tests/scenarios",
+    "make:video": "tsx scripts/make-unsafe-video.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
