@@ -9,17 +9,15 @@
    * Color roles. Category hues are the dataviz reference palette's dark
    * steps in fixed order, validated against THIS page's panel surface
    * (#171a23) with scripts/validate_palette.js: all checks pass, worst
-   * adjacent CVD ΔE 8.4. The previous hues failed that check (Message vs
-   * Call & Meeting: ΔE 3.8 under protanopia) and reused status colors as
-   * categories (Message was the exact "passed" green, Moderation the exact
-   * "warning" amber). Status tokens below are reserved for state only and
-   * always ship with a text label, never color alone.
+   * adjacent CVD ΔE 8.4. Status tokens below are reserved for state only
+   * and always ship with a text label, never color alone.
    */
   :root {
     color-scheme: dark;
     --page: #0f1117;
     --surface: #171a23;
     --surface-2: #1d2130;
+    --inset: #12141c;
     --hairline: #262b38;
     --ink: #e6e8ef;
     --ink-2: #b3b8c8;
@@ -44,6 +42,7 @@
 
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --header-h: 55px;
   }
   * { box-sizing: border-box; }
   body {
@@ -59,6 +58,7 @@
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
+  [hidden] { display: none !important; }
 
   /* ---------- header ---------- */
   header {
@@ -90,8 +90,8 @@
   .tab {
     background: transparent; border: 0; color: var(--muted);
     padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 7px;
   }
-  .tab { display: inline-flex; align-items: center; gap: 7px; }
   .tab:hover { color: var(--ink); }
   .tab-live, .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; animation: live-pulse 1.4s ease-out infinite; }
   @keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(108,140,255,0.65); } 80%, 100% { box-shadow: 0 0 0 7px rgba(108,140,255,0); } }
@@ -101,21 +101,194 @@
   .conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s ease-in-out infinite; }
   .conn .dot.off { background: var(--critical); animation: none; }
   @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(12,163,12,0.18); } 50% { box-shadow: 0 0 0 6px rgba(12,163,12,0.06); } }
-  .toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); cursor: pointer; white-space: nowrap; user-select: none; }
-  .toggle input { accent-color: var(--accent); margin: 0; }
 
-  /* ---------- layout ---------- */
+  /* ---------- shared controls ---------- */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .search { position: relative; flex: 1 1 260px; min-width: 0; }
+  .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--muted); pointer-events: none; }
+  .search kbd {
+    position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    border: 1px solid var(--hairline); border-radius: 4px; padding: 0 5px; pointer-events: none;
+  }
+  .control {
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 7px 10px; font-size: 13px; min-width: 0;
+  }
+  .control:hover { border-color: #353b4d; }
+  .search .control { width: 100%; padding-left: 31px; padding-right: 32px; }
+  select.control { max-width: 300px; }
+  .chip-toggle {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 6px 10px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap;
+  }
+  .chip-toggle input { accent-color: var(--accent); margin: 0; }
+  .chip-toggle .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--surface); color: var(--ink-2);
+    border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 7px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { color: var(--ink); border-color: #353b4d; }
+  .btn svg { width: 13px; height: 13px; flex: none; }
+  .btn.danger:hover { color: #ff9a9a; border-color: rgba(208,59,59,0.6); }
+  .btn.small { padding: 4px 9px; font-size: 11.5px; }
+  .btn.on { color: var(--ink); border-color: rgba(250,178,25,0.55); background: rgba(250,178,25,0.08); }
+  .btn .n { color: var(--warning); font-variant-numeric: tabular-nums; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+  .swatch { width: 8px; height: 8px; border-radius: 2px; flex: none; display: inline-block; }
+  .flag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    background: rgba(255,255,255,0.05); color: var(--ink); white-space: nowrap; flex: none;
+  }
+  code { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+  .k { color: #7fb3ff; } .s { color: #9de08a; } .n { color: #e2b86b; } .b { color: #d693ff; }
+  .who { color: var(--ink); }
+  .quote { color: var(--muted); }
+
+  /* ---------- shared tooltip ---------- */
+  .tip {
+    position: fixed; z-index: 50; pointer-events: none;
+    background: #232839; border: 1px solid #343a4f; border-radius: 8px;
+    padding: 7px 10px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    display: none; white-space: nowrap;
+  }
+  .tip .v { font-weight: 600; color: var(--ink); }
+  .tip .l { color: var(--muted); margin-top: 2px; }
+
+  /* =====================================================================
+     Live events — a request inspector: timeline on top, the requests on
+     the left, the selected one's full request on the right. On desktop
+     the two panes scroll on their own and the page itself never does.
+     ===================================================================== */
+  body.on-events { overflow: hidden; }
+  .events {
+    height: calc(100vh - var(--header-h));
+    height: calc(100dvh - var(--header-h));
+    display: flex; flex-direction: column; gap: 12px;
+    padding: 16px 24px; max-width: 1480px; margin: 0 auto;
+  }
+
+  .scope { flex: none; background: var(--surface); border: 1px solid var(--hairline); border-radius: 12px; padding: 12px 16px; }
+  .scope-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .method {
+    font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    color: var(--ink); border: 1px solid var(--hairline); border-radius: 5px; padding: 2px 6px; flex: none;
+  }
+  .endpoint { font-size: 13px; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+  .endpoint .path { color: var(--muted); }
+  .icon-btn {
+    display: inline-grid; place-items: center; width: 26px; height: 26px; flex: none;
+    background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--muted); cursor: pointer;
+  }
+  .icon-btn:hover { color: var(--ink); border-color: var(--hairline); }
+  .icon-btn svg { width: 14px; height: 14px; }
+  .seg { display: inline-flex; gap: 2px; background: var(--inset); border: 1px solid var(--hairline); border-radius: 7px; padding: 2px; }
+  .seg button {
+    background: transparent; border: 0; color: var(--muted); cursor: pointer;
+    font-size: 12px; padding: 3px 9px; border-radius: 5px; font-variant-numeric: tabular-nums;
+  }
+  .seg button:hover { color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); }
+  .live-state { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); white-space: nowrap; min-width: 58px; }
+  .live-state .pause-mark { width: 8px; height: 9px; border-left: 3px solid var(--warning); border-right: 3px solid var(--warning); flex: none; }
+
+  .timeline {
+    display: flex; align-items: flex-end; gap: 2px;
+    height: 56px; margin-top: 14px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .tcol { flex: 1; height: 100%; display: flex; align-items: flex-end; cursor: pointer; }
+  .tbar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; height: 0; transition: height 0.25s ease; }
+  .tcol.zero { cursor: default; }
+  .tcol:not(.zero):hover .tbar { filter: brightness(1.3); }
+  .tcol.has-sel .tbar { background: #a9bbff; }
+  .axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .metrics {
+    display: flex; flex-wrap: wrap; gap: 6px 22px;
+    margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--hairline);
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  .metric { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .metric b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .panes {
+    flex: 1; min-height: 0;
+    display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden;
+  }
+  .list-pane { position: relative; overflow-y: auto; border-right: 1px solid var(--hairline); overscroll-behavior: contain; }
+  .list-pane:focus-visible { outline-offset: -2px; }
+  .detail-pane { overflow: auto; background: var(--inset); overscroll-behavior: contain; }
+
+  .row {
+    position: relative; display: flex; flex-direction: column; gap: 3px;
+    width: 100%; padding: 10px 14px 10px 17px; text-align: left;
+    background: transparent; border: 0; border-bottom: 1px solid var(--hairline);
+    color: inherit; font: inherit; cursor: pointer;
+  }
+  .row:hover { background: rgba(255,255,255,0.025); }
+  .row.sel { background: var(--surface-2); }
+  .row.sel::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+  .row:focus-visible { outline-offset: -2px; }
+  .row--new { animation: flash-new 1.8s ease-out; }
+  @keyframes flash-new { 0% { background: rgba(108,140,255,0.16); } 100% { background: transparent; } }
+  .row-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .row-trigger { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-time { margin-left: auto; flex: none; font-family: var(--mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .row-sum { font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .flag { padding: 1px 7px; font-size: 10.5px; }
+  .list-note { padding: 14px; font-size: 12px; color: var(--muted); text-align: center; }
+
+  .detail { padding: 18px 22px 28px; display: flex; flex-direction: column; gap: 20px; }
+  .back { display: none; align-self: flex-start; }
+  .detail-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .detail-trigger { font-family: var(--mono); font-size: 16px; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+  .cat-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+  .detail-summary { margin: -10px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); overflow-wrap: anywhere; }
+  .facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 28px; margin: 0; font-size: 13px; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; color: var(--ink); font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .facts dd .quote { font-family: var(--sans); font-size: 12.5px; }
+  .sec-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+    padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--hairline);
+  }
+  .sec-title .n { font-weight: 500; letter-spacing: 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sec-title .btn { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 500; }
+  .htable { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12.5px; }
+  .htable th { text-align: left; font-weight: 400; color: var(--muted); padding: 5px 28px 5px 0; white-space: nowrap; vertical-align: top; width: 1%; }
+  .htable td { color: var(--ink); padding: 5px 0; overflow-wrap: anywhere; word-break: break-word; }
+  .note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  .body-pre {
+    margin: 8px 0 0; padding: 14px 16px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--hairline);
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: #c9cee0;
+    overflow-x: auto; tab-size: 2;
+  }
+  .pane-empty { color: var(--muted); text-align: center; padding: 56px 24px; font-size: 13.5px; line-height: 1.6; }
+  .pane-empty b { color: var(--ink-2); font-weight: 500; }
+
+  /* =====================================================================
+     Test results
+     ===================================================================== */
   .app-shell { display: flex; align-items: flex-start; max-width: 1280px; margin: 0 auto; }
   .sidebar {
     width: 232px; flex: none;
     padding: 22px 8px 22px 24px;
-    position: sticky; top: 55px;
+    position: sticky; top: var(--header-h);
     display: flex; flex-direction: column; gap: 2px;
   }
   .side-title { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 0 10px 8px; }
   .side-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 0 10px 10px; font-size: 11px; color: var(--muted); }
   .side-legend span { display: inline-flex; align-items: center; gap: 5px; }
-  .swatch { width: 8px; height: 8px; border-radius: 2px; flex: none; display: inline-block; }
   .side-item {
     display: flex; flex-direction: column; gap: 7px;
     padding: 9px 10px; border-radius: 8px;
@@ -128,78 +301,13 @@
   .side-row { display: flex; align-items: center; gap: 8px; width: 100%; }
   .side-row .name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .side-row .num { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .side-row .check { color: var(--ink-2); font-size: 11px; }
-  .meter { display: flex; gap: 2px; height: 4px; }
-  .meter .track { flex: 1; background: var(--hairline); border-radius: 2px; overflow: hidden; }
-  .meter .fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
   .stack { display: flex; gap: 2px; height: 5px; }
   .stack .seg { height: 100%; min-width: 3px; border-radius: 1px; }
   .stack .seg:first-child { border-top-left-radius: 3px; border-bottom-left-radius: 3px; }
   .stack .seg:last-child { border-top-right-radius: 3px; border-bottom-right-radius: 3px; }
   .stack .empty-track { flex: 1; background: var(--hairline); border-radius: 3px; }
-
   .main-content { flex: 1; min-width: 0; padding: 22px 24px 40px 16px; }
 
-  /* ---------- toolbar (one filter row, scopes everything below it) ---------- */
-  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-  .search { position: relative; flex: 1 1 220px; min-width: 0; max-width: 340px; }
-  .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--muted); pointer-events: none; }
-  .control {
-    background: var(--surface); color: var(--ink);
-    border: 1px solid var(--hairline); border-radius: 8px;
-    padding: 7px 10px; font-size: 13px; min-width: 0;
-  }
-  .control:hover { border-color: #353b4d; }
-  .search .control { width: 100%; padding-left: 31px; }
-  select.control { max-width: 240px; }
-  .chip-toggle {
-    display: inline-flex; align-items: center; gap: 7px;
-    background: var(--surface); border: 1px solid var(--hairline); border-radius: 8px;
-    padding: 6px 10px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap;
-  }
-  .chip-toggle input { accent-color: var(--accent); margin: 0; }
-  .chip-toggle .n { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .count { font-size: 12px; color: var(--muted); white-space: nowrap; }
-  .btn {
-    background: var(--surface); color: var(--ink-2);
-    border: 1px solid var(--hairline); border-radius: 8px;
-    padding: 7px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap;
-  }
-  .btn:hover { color: var(--ink); border-color: #353b4d; }
-  .btn.danger:hover { color: #ff9a9a; border-color: rgba(208,59,59,0.6); }
-  .btn.small { padding: 4px 9px; font-size: 11.5px; }
-
-  /* ---------- KPI row (stat tiles) ---------- */
-  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-  .tile {
-    background: var(--surface); border: 1px solid var(--hairline); border-radius: 12px;
-    padding: 14px 16px; min-width: 0; display: flex; flex-direction: column; gap: 6px;
-  }
-  .tile-label { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tile-value { font-size: 26px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
-  .tile-value .of { font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
-  .tile-sub { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; min-width: 0; }
-  .tile-sub span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
-  .spark { display: flex; align-items: flex-end; gap: 2px; height: 34px; margin-top: 2px; }
-  .spark .col { flex: 1; max-width: 24px; height: 100%; display: flex; align-items: flex-end; cursor: default; }
-  .spark .bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--neutral); min-height: 0; }
-  .spark .col.now .bar { background: var(--accent); }
-  .spark .col.zero .bar { height: 1px !important; border-radius: 0; background: var(--hairline); }
-  .spark .col:hover .bar, .spark .col:focus-visible .bar { filter: brightness(1.35); }
-  .spark .col:focus-visible { outline-offset: 0; border-radius: 3px; }
-
-  /* ---------- shared tooltip ---------- */
-  .tip {
-    position: fixed; z-index: 50; pointer-events: none;
-    background: #232839; border: 1px solid #343a4f; border-radius: 8px;
-    padding: 7px 10px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.45);
-    display: none; white-space: nowrap;
-  }
-  .tip .v { font-weight: 600; color: var(--ink); }
-  .tip .l { color: var(--muted); margin-top: 2px; }
-
-  /* ---------- live run strip ---------- */
   .live {
     background: var(--surface); border: 1px solid rgba(108,140,255,0.45); border-radius: 14px;
     padding: 14px 18px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;
@@ -220,12 +328,7 @@
   .live-meter .fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.5s ease; }
   .live-current { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .live-current b { color: var(--ink-2); font-weight: 500; }
-  @media (prefers-reduced-motion: reduce) {
-    .tab-live, .live-dot, .conn .dot { animation: none; }
-    .card--new { animation: none; }
-  }
 
-  /* ---------- hero (results) ---------- */
   .hero {
     display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 28px; align-items: center;
     background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px;
@@ -249,14 +352,12 @@
   .stat.active { border-color: var(--accent); color: var(--ink); background: rgba(108,140,255,0.06); }
   .stat .n { font-weight: 600; color: var(--ink); }
 
-  /* ---------- lists ---------- */
   .card {
     background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px;
     margin-bottom: 8px; overflow: hidden;
   }
-  .card.dup { border-color: rgba(236,131,90,0.55); }
-  .card--new { animation: flash-new 1.8s ease-out; }
-  @keyframes flash-new { 0% { background: rgba(108,140,255,0.16); } 100% { background: var(--surface); } }
+  .card--new { animation: flash-card 1.8s ease-out; }
+  @keyframes flash-card { 0% { background: rgba(108,140,255,0.16); } 100% { background: var(--surface); } }
   .card-head {
     display: flex; align-items: center; gap: 10px;
     width: 100%; padding: 11px 14px; background: transparent; border: 0; color: inherit;
@@ -268,29 +369,14 @@
   .cat-bar { width: 3px; align-self: stretch; border-radius: 2px; flex: none; margin: -3px 0; }
   .chev { color: var(--muted); font-size: 10px; flex: none; transition: transform 0.15s; width: 10px; }
   .card.open .chev { transform: rotate(90deg); }
-  .trigger {
-    font-family: var(--mono); font-size: 12px; font-weight: 600;
-    padding: 3px 8px; border-radius: 5px; background: rgba(108,140,255,0.12); color: #a9bbff;
-    white-space: nowrap; flex: none;
-  }
-  .summary { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .summary .who { color: var(--ink); }
-  .summary .quote { color: var(--muted); }
   .when { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; flex: none; }
-  .flag {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
-    background: rgba(255,255,255,0.05); color: var(--ink); white-space: nowrap; flex: none;
-  }
   .card-body { display: none; border-top: 1px solid var(--hairline); }
   .card.open .card-body { display: block; }
   pre {
     margin: 0; padding: 14px; font-family: var(--mono); font-size: 12px; line-height: 1.55;
     overflow-x: auto; color: #c9cee0;
   }
-  .k { color: #7fb3ff; } .s { color: #9de08a; } .n { color: #e2b86b; } .b { color: #d693ff; }
   .card-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 14px; border-top: 1px solid var(--hairline); }
-
   .test-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
   .test-file { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
   .test-title { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -303,21 +389,43 @@
     color: var(--ink-2); font-size: 12.5px; line-height: 1.5;
   }
   .hint b { color: var(--ink); }
-
   .empty {
     color: var(--muted); text-align: center; padding: 56px 20px; font-size: 14px;
     border: 1px dashed var(--hairline); border-radius: 12px;
   }
   .empty b { color: var(--ink-2); font-weight: 500; }
-  code { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tab-live, .live-dot, .conn .dot { animation: none; }
+    .row--new, .card--new { animation: none; }
+    .tbar { transition: none; }
+  }
 
   /* ---------- narrow screens ---------- */
-  @media (max-width: 900px) {
-    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 980px) {
+    .panes { grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); }
   }
   @media (max-width: 760px) {
     header { padding: 10px 16px; gap: 10px; }
     .tabs { order: 3; }
+    /* One pane at a time, and the page scrolls normally. */
+    body.on-events { overflow: auto; }
+    .events { height: auto; padding: 12px 16px 24px; }
+    .search { flex-basis: 100%; }
+    .search kbd { display: none; }
+    select.control { flex: 1 1 auto; max-width: none; }
+    .panes { display: block; }
+    .list-pane { border-right: 0; }
+    .detail-pane { display: none; }
+    .panes.show-detail .list-pane { display: none; }
+    .panes.show-detail .detail-pane { display: block; }
+    .back { display: inline-flex; }
+    .detail { padding: 14px 16px 22px; }
+    .facts { grid-template-columns: 1fr; gap: 2px; }
+    .facts dd { margin-bottom: 8px; }
+    .metrics { gap: 6px 16px; }
+    .metric { white-space: normal; }
+
     .app-shell { flex-direction: column; }
     .sidebar {
       position: static; width: 100%;
@@ -329,28 +437,18 @@
     .side-title, .side-legend { display: none; }
     .side-item { flex: none; width: auto; min-width: 128px; background: var(--surface); border-color: var(--hairline); }
     .main-content { padding: 14px 16px 32px; }
-    .search { max-width: none; flex-basis: 100%; }
-    select.control { flex: 1 1 auto; max-width: none; }
-    .kpis { gap: 10px; }
-    .tile { padding: 12px 14px; }
-    .tile-value { font-size: 22px; }
     .hero { grid-template-columns: 1fr; padding: 16px 18px; }
     .hero-figure { font-size: 48px; }
     .card-head { flex-wrap: wrap; row-gap: 6px; }
     .when { margin-left: auto; }
-    .tile-sub { align-items: flex-start; }
-    .tile-sub span:last-child { white-space: normal; overflow: visible; }
-    .tile-sub .status-dot { margin-top: 4px; }
-    .summary { order: 5; flex-basis: 100%; white-space: normal; overflow-wrap: anywhere; padding-left: 20px; }
     .test-main { flex-wrap: wrap; }
     .test-title { flex-basis: 100%; white-space: normal; }
-    .trigger { white-space: normal; overflow-wrap: anywhere; }
   }
 </style>
 </head>
-<body>
+<body class="on-events">
 
-<header>
+<header id="appHeader">
   <div class="brand">
     <div class="brand-mark" aria-hidden="true">
       <svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h3l2-5 2 10 2-5h3"/></svg>
@@ -364,81 +462,76 @@
   </div>
   <div class="spacer"></div>
   <div class="conn"><span class="dot" id="statusDot"></span><span id="statusText">connecting…</span></div>
-  <label class="toggle"><input type="checkbox" id="autoRefresh" checked /> Auto-refresh</label>
 </header>
 
-<div class="app-shell">
-  <nav class="sidebar" id="sidebar" aria-label="Categories"></nav>
+<!-- ===== Live events ===== -->
+<section class="events" id="eventsView">
+  <div class="scope">
+    <div class="scope-head">
+      <span class="method">POST</span>
+      <code class="endpoint" id="endpoint" title="The URL CometChat's Dashboard should deliver webhooks to"></code>
+      <button class="icon-btn" id="copyEndpoint" title="Copy webhook URL" aria-label="Copy webhook URL">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9A1.5 1.5 0 0 0 3.5 10.5h2"/></svg>
+      </button>
+      <div class="spacer"></div>
+      <div class="seg" role="group" aria-label="Timeline window" id="windowSeg">
+        <button type="button" data-window="1m">1m</button>
+        <button type="button" data-window="15m">15m</button>
+        <button type="button" data-window="1h">1h</button>
+      </div>
+      <span class="live-state" id="liveState" aria-live="polite"></span>
+    </div>
+    <div class="timeline" id="timeline" role="img"></div>
+    <div class="axis"><span id="axisStart"></span><span>now</span></div>
+    <table class="sr-only" id="timelineTable"></table>
+    <div class="metrics" id="metrics"></div>
+  </div>
 
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <input class="control" type="search" id="searchBox" placeholder="Filter by trigger, uid, guid, message text or IP" aria-label="Filter requests" />
+      <kbd aria-hidden="true">/</kbd>
+    </div>
+    <select class="control" id="viewFilter" aria-label="Show category or trigger"><option value="">All webhooks</option></select>
+    <label class="chip-toggle" title="user_connection_status_changed fires for every client connect/disconnect and usually dominates the feed">
+      <input type="checkbox" id="hidePresence" checked /> Hide presence <span class="n" id="presenceCount"></span>
+    </label>
+    <button class="btn" id="pauseBtn" type="button" aria-pressed="false"></button>
+    <button class="btn danger" id="clearBtn" type="button">Clear</button>
+  </div>
+
+  <div class="panes" id="panes">
+    <div class="list-pane" id="list" role="listbox" aria-label="Received webhooks, newest first"></div>
+    <div class="detail-pane" id="detailPane" aria-live="off"></div>
+  </div>
+</section>
+
+<!-- ===== Test results ===== -->
+<div class="app-shell" id="resultsView" hidden>
+  <nav class="sidebar" id="sidebar" aria-label="Test categories"></nav>
   <div class="main-content">
-    <!-- ===== Live events ===== -->
-    <section id="eventsView">
-      <div class="toolbar">
-        <div class="search">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
-          <input class="control" type="search" id="searchBox" placeholder="Search uid, guid, message text…" aria-label="Search events" />
-        </div>
-        <select class="control" id="triggerFilter" aria-label="Filter by trigger"><option value="">All triggers</option></select>
-        <label class="chip-toggle" title="user_connection_status_changed fires ambiently for every client connect/disconnect and usually dominates the feed">
-          <input type="checkbox" id="hidePresence" checked /> Hide presence <span class="n" id="presenceCount"></span>
-        </label>
-        <div class="spacer"></div>
-        <span class="count" id="count"></span>
-        <button class="btn danger" id="clearBtn">Clear all</button>
+    <div class="live" id="liveStrip" hidden aria-live="polite">
+      <div class="live-head">
+        <span class="live-badge"><span class="live-dot"></span><span id="liveBadgeText">Live</span></span>
+        <span id="liveProgress"></span>
+        <span class="live-elapsed" id="liveElapsed"></span>
       </div>
-
-      <div class="kpis" id="kpis">
-        <div class="tile">
-          <div class="tile-label">Events · last hour</div>
-          <div class="tile-value" id="kpiHourValue">0</div>
-          <div class="spark" id="spark" role="img" aria-label="Events per 5 minutes over the last hour"></div>
-          <table class="sr-only" id="sparkTable"></table>
-        </div>
-        <div class="tile">
-          <div class="tile-label">Webhook types fired</div>
-          <div class="tile-value" id="kpiTypesValue">0</div>
-          <div class="tile-sub"><span class="status-dot" style="background:var(--neutral)"></span><span id="kpiTypesSub">distinct triggers seen</span></div>
-        </div>
-        <div class="tile">
-          <div class="tile-label">Duplicate deliveries</div>
-          <div class="tile-value" id="kpiDupValue">0</div>
-          <div class="tile-sub"><span class="status-dot" id="kpiDupDot"></span><span id="kpiDupSub"></span></div>
-        </div>
-        <div class="tile">
-          <div class="tile-label">Side-effect message_sent</div>
-          <div class="tile-value" id="kpiActionValue">0</div>
-          <div class="tile-sub" title="Editing or deleting a message auto-creates an &quot;action&quot; message that fires its own message_sent — a known CometChat bug (edit fires 3, delete fires 1)."><span class="status-dot" id="kpiActionDot"></span><span id="kpiActionSub"></span></div>
-        </div>
+      <div class="live-meter" role="progressbar" aria-valuemin="0" aria-label="Tests completed" id="liveMeter"><div class="fill" id="liveFill" style="width:0"></div></div>
+      <div class="live-current" id="liveCurrent"></div>
+    </div>
+    <div class="hero" id="hero" hidden>
+      <div class="hero-figure" id="heroFigure">0%</div>
+      <div class="hero-body">
+        <div class="hero-caption" id="heroCaption"></div>
+        <div class="hero-meter" role="meter" aria-valuemin="0" aria-valuemax="100" id="heroMeter"><div class="fill" id="heroFill" style="width:0"></div></div>
+        <div class="hero-meta" id="heroMeta"></div>
       </div>
+    </div>
 
-      <div id="list"></div>
-      <div class="empty" id="emptyState" hidden></div>
-    </section>
-
-    <!-- ===== Test results ===== -->
-    <section id="resultsView" hidden>
-      <div class="live" id="liveStrip" hidden aria-live="polite">
-        <div class="live-head">
-          <span class="live-badge"><span class="live-dot"></span><span id="liveBadgeText">Live</span></span>
-          <span id="liveProgress"></span>
-          <span class="live-elapsed" id="liveElapsed"></span>
-        </div>
-        <div class="live-meter" role="progressbar" aria-valuemin="0" aria-label="Tests completed" id="liveMeter"><div class="fill" id="liveFill" style="width:0"></div></div>
-        <div class="live-current" id="liveCurrent"></div>
-      </div>
-      <div class="hero" id="hero" hidden>
-        <div class="hero-figure" id="heroFigure">0%</div>
-        <div class="hero-body">
-          <div class="hero-caption" id="heroCaption"></div>
-          <div class="hero-meter" role="meter" aria-valuemin="0" aria-valuemax="100" id="heroMeter"><div class="fill" id="heroFill" style="width:0"></div></div>
-          <div class="hero-meta" id="heroMeta"></div>
-        </div>
-      </div>
-
-      <div class="stats" id="stats"></div>
-      <div id="resultsList"></div>
-      <div class="empty" id="resultsEmpty" hidden></div>
-    </section>
+    <div class="stats" id="stats"></div>
+    <div id="resultsList"></div>
+    <div class="empty" id="resultsEmpty" hidden></div>
   </div>
 </div>
 
@@ -447,18 +540,26 @@
 <script>
   const $ = (id) => document.getElementById(id);
   const listEl = $('list');
-  const emptyEl = $('emptyState');
-  const filterEl = $('triggerFilter');
+  const detailEl = $('detailPane');
+  const panesEl = $('panes');
+  const filterEl = $('viewFilter');
   const searchEl = $('searchBox');
   const hidePresenceEl = $('hidePresence');
-  const countEl = $('count');
+  const pauseBtn = $('pauseBtn');
+  const timelineEl = $('timeline');
   const dotEl = $('statusDot');
   const statusText = $('statusText');
-  const autoRefresh = $('autoRefresh');
   const sidebarEl = $('sidebar');
   const tipEl = $('tip');
 
   const PRESENCE_TRIGGERS = ['user_connection_status_changed'];
+  const narrow = window.matchMedia('(max-width: 760px)');
+
+  // The events view fills the viewport under the header, whose height
+  // changes when it wraps on narrower screens.
+  new ResizeObserver(([entry]) => {
+    document.documentElement.style.setProperty('--header-h', Math.ceil(entry.target.getBoundingClientRect().height) + 'px');
+  }).observe($('appHeader'));
 
   // ---- per-viewer conveniences (never required: storage can be blocked) ----
   function loadPref(key, fallback) {
@@ -508,7 +609,6 @@
 
   let triggerToCategory = {};
   let categoryTotals = {};
-  let selectedCategory = '';
 
   // message_delivery_receipt / message_read_receipt are the 2 trigger names
   // Legacy shares with Modern (see legacy.registry.ts). The static map can
@@ -542,6 +642,12 @@
     const d = new Date(ms);
     return d.toLocaleTimeString(undefined, { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
   }
+  // Clock time alone reads as "today", so older events also get their date.
+  function fmtStamp(ms) {
+    const d = new Date(ms);
+    const sameDay = d.toDateString() === new Date().toDateString();
+    return (sameDay ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ') + fmtClock(ms);
+  }
   function fmtAgo(ms) {
     const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
     if (s < 5) return 'just now';
@@ -561,11 +667,17 @@
     const rem = Math.round(s - m * 60);
     return m + 'm ' + String(rem).padStart(2, '0') + 's';
   }
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1).replace(/\.0$/, '') + ' KB';
+    return (n / 1024 / 1024).toFixed(1).replace(/\.0$/, '') + ' MB';
+  }
   function compact(n) {
     if (n < 1000) return String(n);
     if (n < 1e6) return (n / 1000).toFixed(n < 10000 ? 1 : 0).replace(/\.0$/, '') + 'K';
     return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
   }
+  const plural = (n, word) => `${word}${n === 1 ? '' : 's'}`;
   function highlightJsonString(json) {
     return escapeHtml(json).replace(
       /(&quot;(\\u[a-zA-Z0-9]{4}|\\[^u]|(?!&quot;).)*?&quot;(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?([eE][+-]?\d+)?)/g,
@@ -590,6 +702,14 @@
     } catch {
       return escapeHtml(text);
     }
+  }
+
+  function copyText(btn, text, doneLabel = 'Copied') {
+    navigator.clipboard.writeText(text).catch(() => {});
+    const original = btn.dataset.label || btn.innerHTML;
+    btn.dataset.label = original;
+    btn.textContent = doneLabel;
+    setTimeout(() => { btn.innerHTML = original; delete btn.dataset.label; }, 1200);
   }
 
   // ---- human-readable event summaries ----
@@ -757,19 +877,28 @@
     return (e.id || e.receivedAt) + ':' + (e.trigger || '');
   }
 
-  // Lists are rebuilt via innerHTML (on toggle, and on each poll that brings
-  // new events), which destroys whatever element had keyboard focus. Put
-  // focus back on the same card's control so keyboard users never lose
-  // their place.
+  // Events recorded before the receiver captured size keep an estimate.
+  const sizeCache = new Map();
+  const encoder = new TextEncoder();
+  function sizeOf(e) {
+    if (typeof e.size === 'number') return e.size;
+    const id = eventId(e);
+    if (!sizeCache.has(id)) sizeCache.set(id, encoder.encode(JSON.stringify(e.payload || {})).length);
+    return sizeCache.get(id);
+  }
+
+  // Result lists are rebuilt via innerHTML, which destroys whatever element
+  // had keyboard focus. Put focus back on the same card's control so
+  // keyboard users never lose their place.
   function preserveFocus(container, rebuild) {
     const active = document.activeElement;
     const card = active && container.contains(active) ? active.closest('.card') : null;
     const id = card && card.dataset.id;
-    const onCopy = Boolean(active && active.matches('[data-copy], [data-copy-reason]'));
+    const onCopy = Boolean(active && active.matches('[data-copy-reason]'));
     rebuild();
     if (!id) return;
     const next = [...container.querySelectorAll('.card')].find((c) => c.dataset.id === id);
-    const target = next && (onCopy ? next.querySelector('[data-copy], [data-copy-reason]') : next.querySelector('.card-head'));
+    const target = next && (onCopy ? next.querySelector('[data-copy-reason]') : next.querySelector('.card-head'));
     if (target) target.focus({ preventScroll: true });
   }
 
@@ -794,276 +923,519 @@
     const t = ev.target.closest('[data-tip-v]');
     if (t) showTip(t, t.dataset.tipV, t.dataset.tipL || ''); else hideTip();
   });
-  window.addEventListener('scroll', hideTip, { passive: true });
+  window.addEventListener('scroll', hideTip, { passive: true, capture: true });
 
   // =====================================================================
   // Live events
   // =====================================================================
-  const openIds = new Set();
+  let allEvents = [];            // everything the receiver has, oldest first
+  const knownIds = new Set();
+  let historyEpoch = null;       // see /webhook/history in index.js
+  let paused = false;
+  let frozenEvents = null;       // what stays on screen while paused
+  let frozenAt = null;
+  let selectedId = null;
+  let shownIds = [];             // list order, newest first
   const seenEventIds = new Set();
-  const payloadById = new Map();
+  let seeded = false;            // first load doesn't flash every row as "new"
   const searchCache = new Map();
-  let knownTriggers = new Set();
-  let lastRenderKey = '';
-  let lastEventsData = [];
+  let lastListKey = '';
+  let lastDetailKey = '';
+  let lastFilterSig = '';
+  let timelineSlice = [];
+  let dupInfoAll = new Map();
+  const MAX_ROWS = 400;          // keep the DOM light; search/filters reach the rest
+
+  const endpointUrl = window.location.origin + '/webhook';
+  $('endpoint').innerHTML = `${escapeHtml(window.location.host)}<span class="path">/webhook</span>`;
+  $('copyEndpoint').addEventListener('click', (ev) => copyText(ev.currentTarget, endpointUrl, '✓'));
+
+  const visibleEvents = () => (paused ? frozenEvents : allEvents);
 
   function searchTextOf(e) {
     const id = eventId(e);
     let s = searchCache.get(id);
     if (s == null) {
-      s = ((e.trigger || '') + ' ' + JSON.stringify(e.payload || {})).toLowerCase();
+      s = ((e.trigger || '') + ' ' + (e.ip || '') + ' ' + JSON.stringify(e.payload || {})).toLowerCase();
       searchCache.set(id, s);
     }
     return s;
   }
 
-  // One filter row scopes everything below it: KPIs, sidebar selection and
-  // the list all read from this same slice so their numbers always agree.
+  // viewFilter values: '' | 'cat:<KEY>' | 'trig:<KEY>:<trigger>'. A trigger
+  // option carries its category because Legacy and Message share 2 names.
+  function parseFilter() {
+    const v = filterEl.value;
+    if (v.startsWith('cat:')) return { cat: v.slice(4), trig: '' };
+    if (v.startsWith('trig:')) {
+      const rest = v.slice(5);
+      const i = rest.indexOf(':');
+      return { cat: rest.slice(0, i), trig: rest.slice(i + 1) };
+    }
+    return { cat: '', trig: '' };
+  }
+
+  // One filter row scopes everything below it: timeline, metrics and list
+  // all read from this same slice so their numbers always agree.
   function sliceEvents(events) {
     const q = searchEl.value.trim().toLowerCase();
-    const trig = filterEl.value;
-    const hidePresence = hidePresenceEl.checked;
+    const { cat, trig } = parseFilter();
+    // Picking the presence trigger itself overrides "Hide presence".
+    const hidePresence = hidePresenceEl.checked && !PRESENCE_TRIGGERS.includes(trig);
     return events.filter((e) => {
       if (hidePresence && PRESENCE_TRIGGERS.includes(e.trigger)) return false;
-      if (selectedCategory && displayCategoryOf(e.trigger, e.payload) !== selectedCategory) return false;
+      if (cat && displayCategoryOf(e.trigger, e.payload) !== cat) return false;
       if (trig && e.trigger !== trig) return false;
       if (q && !searchTextOf(e).includes(q)) return false;
       return true;
     });
   }
 
-  function renderEventsSidebar(events) {
-    const firedBy = {};
-    const allFired = new Set();
+  // The category/trigger picker doubles as the coverage view: each group
+  // says how many of its registered webhook types have fired so far.
+  function updateFilterOptions(events) {
+    const pairs = new Map(); // cat -> Set(trigger)
     for (const e of events) {
       if (!e.trigger) continue;
-      allFired.add(e.trigger);
-      const key = displayCategoryOf(e.trigger, e.payload);
-      (firedBy[key] = firedBy[key] || new Set()).add(e.trigger);
+      const cat = displayCategoryOf(e.trigger, e.payload);
+      if (!pairs.has(cat)) pairs.set(cat, new Set());
+      pairs.get(cat).add(e.trigger);
     }
+    const sig = [...pairs].map(([c, s]) => c + '=' + [...s].sort().join(',')).sort().join('|') + '#' + Object.keys(categoryTotals).length;
+    if (sig === lastFilterSig) return;
+    lastFilterSig = sig;
+
+    const current = filterEl.value;
     const totals = totalsByDisplayCategory();
     const grand = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
-    const items = [{ key: '', label: 'All categories', fired: allFired.size, total: grand, color: 'var(--accent)' }].concat(
-      DISPLAY_CATEGORIES.map((c) => ({ key: c.key, label: c.label, fired: (firedBy[c.key] || new Set()).size, total: totals[c.key] || 0, color: c.color }))
-    );
-    if (firedBy.OTHER) items.push({ key: 'OTHER', label: 'Other', fired: firedBy.OTHER.size, total: null, color: 'var(--cat-other)' });
-
-    sidebarEl.innerHTML =
-      `<div class="side-title">Coverage · types fired</div>` +
-      items
-        .map((it) => {
-          const pct = it.total ? Math.min(100, Math.round((100 * it.fired) / it.total)) : 0;
-          const complete = it.total && it.fired >= it.total;
-          return `
-          <button class="side-item ${selectedCategory === it.key ? 'active' : ''}" data-cat="${escapeHtml(it.key)}">
-            <div class="side-row">
-              <span class="name">${it.key ? `<span class="swatch" style="background:${it.color}"></span>` : ''}${escapeHtml(it.label)}</span>
-              ${complete ? '<span class="check" title="Every registered type has fired">✓ all</span>' : ''}
-              <span class="num">${it.total == null ? it.fired : it.fired + '/' + it.total}</span>
-            </div>
-            <div class="meter"><div class="track"><div class="fill" style="width:${pct}%; background:${it.color}"></div></div></div>
-          </button>`;
-        })
-        .join('');
+    const allFired = new Set(events.map((e) => e.trigger).filter(Boolean)).size;
+    const cats = DISPLAY_CATEGORIES.map((c) => c.key).concat(pairs.has('OTHER') ? ['OTHER'] : []);
+    let html = `<option value="">All webhooks${grand ? ` — ${allFired}/${grand} types fired` : ''}</option>`;
+    const values = new Set(['']);
+    for (const key of cats) {
+      const fired = pairs.get(key) || new Set();
+      const total = totals[key];
+      html += `<optgroup label="${escapeHtml(labelOf(key))}${total ? ` — ${fired.size}/${total} fired` : ''}">`;
+      html += `<option value="cat:${escapeHtml(key)}">All ${escapeHtml(labelOf(key))}</option>`;
+      values.add('cat:' + key);
+      for (const t of [...fired].sort()) {
+        html += `<option value="trig:${escapeHtml(key)}:${escapeHtml(t)}">${escapeHtml(t)}</option>`;
+        values.add(`trig:${key}:${t}`);
+      }
+      html += '</optgroup>';
+    }
+    // Keep a chosen trigger selectable after a Clear wipes its events.
+    if (current && !values.has(current)) {
+      html += `<option value="${escapeHtml(current)}">${escapeHtml(current.split(':').pop())} (no events yet)</option>`;
+    }
+    filterEl.innerHTML = html;
+    filterEl.value = current;
   }
 
-  function renderKpis(slice, dupInfo) {
-    // Events per 5 min over the last hour — 12 columns, the stat-tile trend.
-    const BUCKET = 5 * 60 * 1000, N = 12;
-    const now = Date.now();
-    const start = now - N * BUCKET;
-    const buckets = new Array(N).fill(0);
-    let inHour = 0;
-    for (const e of slice) {
-      if (e.receivedAt < start) continue;
-      buckets[Math.min(N - 1, Math.floor((e.receivedAt - start) / BUCKET))]++;
-      inHour++;
-    }
-    $('kpiHourValue').textContent = compact(inHour);
-    const max = Math.max(1, ...buckets);
-    const hhmm = (ms) => new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
-    $('spark').innerHTML = buckets
-      .map((v, i) => {
-        const from = start + i * BUCKET;
-        const label = i === N - 1 ? `${hhmm(from)}–now` : `${hhmm(from)}–${hhmm(from + BUCKET)}`;
-        return `<div class="col ${i === N - 1 ? 'now' : ''} ${v === 0 ? 'zero' : ''}" tabindex="0"
-                  data-tip-v="${v} event${v === 1 ? '' : 's'}" data-tip-l="${escapeHtml(label)}">
-                  <div class="bar" style="height:${Math.max(0, Math.round((100 * v) / max))}%"></div></div>`;
-      })
-      .join('');
-    $('spark').setAttribute('aria-label', `Events per 5 minutes over the last hour: ${buckets.join(', ')}`);
-    $('sparkTable').innerHTML =
-      '<caption>Events per 5-minute window, last hour</caption><tr><th>Window start</th><th>Events</th></tr>' +
-      buckets.map((v, i) => `<tr><td>${hhmm(start + i * BUCKET)}</td><td>${v}</td></tr>`).join('');
+  // ---- timeline ----
+  // A fixed 60 columns; the window picks how much time each one covers.
+  const WINDOWS = {
+    '1m': { span: 60 * 1000, start: '60s ago' },
+    '15m': { span: 15 * 60 * 1000, start: '15 min ago' },
+    '1h': { span: 60 * 60 * 1000, start: '1 hour ago' },
+  };
+  const BUCKETS = 60;
+  let windowKey = loadPref('window', '15m');
+  if (!WINDOWS[windowKey]) windowKey = '15m';
+  timelineEl.innerHTML = Array.from({ length: BUCKETS }, (_, i) => `<div class="tcol zero" data-i="${i}"><div class="tbar"></div></div>`).join('');
+  const tcols = [...timelineEl.children];
+  let bucketBounds = [];
 
-    // Distinct webhook types in the slice, against what's registered.
+  function renderWindowSeg() {
+    for (const b of $('windowSeg').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.window === windowKey));
+    $('axisStart').textContent = WINDOWS[windowKey].start;
+  }
+
+  function renderTimeline() {
+    const { span } = WINDOWS[windowKey];
+    const size = span / BUCKETS;
+    // Edges snap to whole buckets so bars step left cleanly instead of jittering.
+    const end = Math.ceil((paused && frozenAt ? frozenAt : Date.now()) / size) * size;
+    const start = end - span;
+    const counts = new Array(BUCKETS).fill(0);
+    const selected = selectedId && timelineSlice.find((e) => eventId(e) === selectedId);
+    // Arrival order means the newest are at the end: stop at the window's start.
+    for (let i = timelineSlice.length - 1; i >= 0; i--) {
+      const t = timelineSlice[i].receivedAt;
+      if (t < start) break;
+      counts[Math.min(BUCKETS - 1, Math.floor((t - start) / size))]++;
+    }
+    const selBucket = selected && selected.receivedAt >= start ? Math.min(BUCKETS - 1, Math.floor((selected.receivedAt - start) / size)) : -1;
+    const max = Math.max(1, ...counts);
+    const clockOpts = size < 60000 ? { hour12: false } : { hour: '2-digit', minute: '2-digit', hour12: false };
+    const fmt = (ms) => new Date(ms).toLocaleTimeString(undefined, clockOpts);
+    bucketBounds = counts.map((_, i) => [start + i * size, start + (i + 1) * size]);
+    counts.forEach((v, i) => {
+      const col = tcols[i];
+      col.classList.toggle('zero', v === 0);
+      col.classList.toggle('has-sel', i === selBucket);
+      col.firstChild.style.height = v ? Math.max(3, Math.round((100 * v) / max)) + '%' : '0';
+      col.dataset.tipV = `${v} ${plural(v, 'request')}`;
+      col.dataset.tipL = `${fmt(bucketBounds[i][0])} – ${fmt(bucketBounds[i][1])}`;
+    });
+    const total = counts.reduce((a, b) => a + b, 0);
+    timelineEl.setAttribute('aria-label', `${total} ${plural(total, 'request')} in the last ${WINDOWS[windowKey].start.replace(' ago', '')}, busiest interval ${Math.max(...counts)}`);
+  }
+
+  function renderTimelineTable() {
+    $('timelineTable').innerHTML =
+      '<caption>Requests per interval in the timeline window</caption><tr><th>From</th><th>Requests</th></tr>' +
+      bucketBounds.map(([from], i) => `<tr><td>${escapeHtml(fmtClock(from))}</td><td>${escapeHtml(tcols[i].dataset.tipV)}</td></tr>`).join('');
+  }
+
+  $('windowSeg').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-window]');
+    if (!b) return;
+    windowKey = b.dataset.window;
+    savePref('window', windowKey);
+    renderWindowSeg();
+    renderTimeline();
+    renderTimelineTable();
+  });
+
+  // Clicking a bar jumps to the newest request in that interval.
+  timelineEl.addEventListener('click', (ev) => {
+    const col = ev.target.closest('.tcol');
+    if (!col || col.classList.contains('zero')) return;
+    const [from, to] = bucketBounds[Number(col.dataset.i)];
+    for (let i = timelineSlice.length - 1; i >= 0; i--) {
+      const t = timelineSlice[i].receivedAt;
+      if (t >= from && t < to) { selectEvent(eventId(timelineSlice[i]), { scroll: true, open: true }); return; }
+      if (t < from) return;
+    }
+  });
+
+  // ---- metrics ----
+  function renderMetrics(events, slice) {
+    const { cat } = parseFilter();
     const types = new Set(slice.map((e) => e.trigger).filter(Boolean));
     const totals = totalsByDisplayCategory();
-    const denom = selectedCategory ? totals[selectedCategory] : Object.values(categoryTotals).reduce((a, b) => a + b, 0);
-    $('kpiTypesValue').innerHTML = `${types.size}${denom ? `<span class="of"> / ${denom}</span>` : ''}`;
-    $('kpiTypesSub').textContent = selectedCategory ? `registered in ${labelOf(selectedCategory)}` : 'registered webhook types';
-
-    // Exactly-once: every delivery after the first of a fingerprinted burst.
+    const denom = cat ? totals[cat] : Object.values(categoryTotals).reduce((a, b) => a + b, 0);
+    // Exactly-once: every delivery after the first of an identical burst.
     let extra = 0;
     for (const e of slice) {
-      const d = dupInfo.get(eventId(e));
+      const d = dupInfoAll.get(eventId(e));
       if (d && d.index > 1) extra++;
     }
-    $('kpiDupValue').textContent = compact(extra);
-    $('kpiDupDot').style.background = extra ? 'var(--critical)' : 'var(--good)';
-    $('kpiDupSub').textContent = extra ? 'identical payload redelivered' : 'none detected — exactly-once holds';
-
     const actions = slice.filter(isActionMessage).length;
-    $('kpiActionValue').textContent = compact(actions);
-    $('kpiActionDot').style.background = actions ? 'var(--serious)' : 'var(--good)';
-    $('kpiActionSub').textContent = actions ? 'from edit/delete action messages' : 'none in this view';
+    $('metrics').innerHTML = `
+      <span class="metric"><span><b>${compact(slice.length)}</b>${slice.length !== events.length ? ` of ${compact(events.length)}` : ''} ${plural(events.length, 'request')}</span></span>
+      <span class="metric"><span><b>${types.size}</b>${denom ? ` / ${denom}` : ''} webhook types ${cat ? 'in ' + escapeHtml(labelOf(cat)) : 'in view'}</span></span>
+      <span class="metric"><span class="status-dot" style="background:${extra ? 'var(--critical)' : 'var(--good)'}"></span><span><b>${compact(extra)}</b> duplicate ${extra === 1 ? 'delivery' : 'deliveries'} · ${extra ? 'identical payload redelivered' : 'exactly-once holds'}</span></span>
+      <span class="metric" title="Editing or deleting a message auto-creates an &quot;action&quot; message that fires its own message_sent — a known CometChat bug (edit fires 3, delete fires 1).">
+        <span class="status-dot" style="background:${actions ? 'var(--serious)' : 'var(--good)'}"></span><span><b>${compact(actions)}</b> side-effect message_sent</span></span>`;
   }
 
-  function renderEventCard(e, dupInfo, newIds) {
+  // ---- list ----
+  function rowFlags(e) {
+    const dup = dupInfoAll.get(eventId(e));
+    let html = '';
+    if (dup) html += `<span class="flag" title="Identical payload, delivery ${dup.index} of ${dup.count}"><span class="status-dot" style="background:var(--critical)"></span>dup ${dup.index}/${dup.count}</span>`;
+    if (isActionMessage(e)) html += `<span class="flag" title="Auto-generated by an edit/delete — known CometChat bug"><span class="status-dot" style="background:var(--serious)"></span>side effect</span>`;
+    return html;
+  }
+
+  function renderRow(e, isNew) {
     const id = eventId(e);
-    const open = openIds.has(id);
-    const dup = dupInfo.get(id);
+    const sel = id === selectedId;
     const cat = displayCategoryOf(e.trigger, e.payload);
-    payloadById.set(id, e.payload);
-    const flags = [];
-    if (dup) {
-      flags.push(`<span class="flag" data-tip-v="Delivery ${dup.index} of ${dup.count}" data-tip-l="${escapeHtml(`Identical payload, +${dup.deltaMs}ms after the first`)}"><span class="status-dot" style="background:var(--critical)"></span>duplicate ${dup.index}/${dup.count}</span>`);
-    }
-    if (isActionMessage(e)) {
-      flags.push(`<span class="flag" data-tip-v="Side-effect message_sent" data-tip-l="Auto-generated by an edit/delete — known CometChat bug"><span class="status-dot" style="background:var(--serious)"></span>side effect</span>`);
-    }
+    const meta = [e.ip, fmtBytes(sizeOf(e))].filter(Boolean).map(escapeHtml).join(' · ');
     return `
-    <div class="card ${open ? 'open' : ''} ${dup ? 'dup' : ''} ${newIds.has(id) ? 'card--new' : ''}" data-id="${escapeHtml(id)}">
-      <button class="card-head" type="button" aria-expanded="${open}">
-        <span class="cat-bar" style="background:${colorOf(cat)}" title="${escapeHtml(labelOf(cat))}"></span>
-        <span class="chev" aria-hidden="true">▶</span>
-        <span class="trigger">${escapeHtml(e.trigger || 'unknown')}</span>
-        ${flags.join('')}
-        <span class="summary">${describeEvent(e)}</span>
-        <span class="when" data-ts="${e.receivedAt}" title="${escapeHtml(fmtClock(e.receivedAt))}">${fmtAgo(e.receivedAt)}</span>
-      </button>
-      <div class="card-body">
-        <pre>${open ? highlightJson(e.payload) : ''}</pre>
-        <div class="card-foot"><button class="btn small" data-copy="${escapeHtml(id)}">Copy JSON</button></div>
-      </div>
-    </div>`;
+    <button type="button" class="row ${sel ? 'sel' : ''} ${isNew ? 'row--new' : ''}" role="option" aria-selected="${sel}" tabindex="${sel ? 0 : -1}" data-id="${escapeHtml(id)}">
+      <span class="row-top">
+        <span class="swatch" style="background:${colorOf(cat)}" title="${escapeHtml(labelOf(cat))}"></span>
+        <span class="row-trigger">${escapeHtml(e.trigger || 'unknown')}</span>
+        ${rowFlags(e)}
+        <span class="row-time" title="${escapeHtml(fmtAgo(e.receivedAt))}">${escapeHtml(fmtStamp(e.receivedAt))}</span>
+      </span>
+      <span class="row-sum">${describeEvent(e)}</span>
+      <span class="row-meta">${meta}</span>
+    </button>`;
   }
 
-  function render(events) {
-    // The sidebar is shared between tabs; the events poll keeps running on
-    // the Results tab and must not clobber that tab's own sidebar.
-    if (activeTab === 'events') renderEventsSidebar(events);
+  function renderList(events, slice) {
+    const shown = slice.slice(-MAX_ROWS).reverse();
+    shownIds = shown.map(eventId);
 
-    // Tracked against the FULL set so switching filters never makes
-    // already-arrived events flash as "new".
     const newIds = new Set();
     for (const e of events) {
       const id = eventId(e);
-      if (!seenEventIds.has(id)) newIds.add(id);
+      if (seeded && !seenEventIds.has(id)) newIds.add(id);
       seenEventIds.add(id);
     }
+    seeded = true;
+
+    if (!events.length || !slice.length) {
+      lastListKey = '';
+      listEl.innerHTML = !events.length
+        ? `<div class="pane-empty"><b>No webhooks yet.</b><br />Point CometChat at <code>${escapeHtml(endpointUrl)}</code> and trigger an action — it shows up here within a couple of seconds.</div>`
+        : `<div class="pane-empty"><b>Nothing matches this view.</b><br />Clear the filter or pick another category${hidePresenceEl.checked ? ', or show presence events' : ''}.</div>`;
+      return;
+    }
+
+    const key = shownIds.join('|') + '#' + [...dupInfoAll.keys()].join(',') + '#' + Object.keys(triggerToCategory).length;
+    if (key === lastListKey) return syncSelection();
+    lastListKey = key;
+
+    // New rows land on top: keep whatever the reader is looking at in place.
+    const anchor = listEl.scrollTop > 0 ? [...listEl.children].find((r) => r.offsetTop + r.offsetHeight > listEl.scrollTop) : null;
+    const anchorId = anchor && anchor.dataset.id;
+    const anchorOffset = anchor ? anchor.offsetTop - listEl.scrollTop : 0;
+    const hadFocus = listEl.contains(document.activeElement);
+
+    listEl.innerHTML =
+      shown.map((e) => renderRow(e, newIds.has(eventId(e)))).join('') +
+      (slice.length > MAX_ROWS ? `<div class="list-note">Showing the newest ${MAX_ROWS} of ${compact(slice.length)} — narrow it with the filter.</div>` : '');
+
+    if (anchorId) {
+      const again = listEl.querySelector(`[data-id="${CSS.escape(anchorId)}"]`);
+      if (again) listEl.scrollTop = again.offsetTop - anchorOffset;
+    }
+    if (hadFocus) {
+      const row = listEl.querySelector('.row.sel') || listEl.querySelector('.row');
+      if (row) row.focus({ preventScroll: true });
+    }
+  }
+
+  function syncSelection() {
+    for (const r of listEl.querySelectorAll('.row')) {
+      const sel = r.dataset.id === selectedId;
+      r.classList.toggle('sel', sel);
+      r.setAttribute('aria-selected', String(sel));
+      r.tabIndex = sel ? 0 : -1;
+    }
+  }
+
+  // ---- detail ----
+  function findEvent(id) {
+    const events = visibleEvents();
+    for (let i = events.length - 1; i >= 0; i--) if (eventId(events[i]) === id) return events[i];
+    return null;
+  }
+
+  function deliveryFact(e) {
+    const dup = dupInfoAll.get(eventId(e));
+    if (dup) {
+      return `<span class="status-dot" style="background:var(--critical)"></span>Duplicate — delivery ${dup.index} of ${dup.count}` +
+        (dup.index > 1 ? ` <span class="quote">+${escapeHtml(fmtDuration(dup.deltaMs))} after the first</span>` : ' <span class="quote">(the first)</span>');
+    }
+    if (fingerprint(e) == null) return `<span class="quote">Not checked — this payload has no stable id to compare</span>`;
+    return `<span class="status-dot" style="background:var(--good)"></span>Once <span class="quote">no identical redelivery within ${DUPLICATE_WINDOW_MS / 1000}s</span>`;
+  }
+
+  function renderDetail() {
+    const e = selectedId && findEvent(selectedId);
+    const dup = e ? dupInfoAll.get(selectedId) : null;
+    const key = (e ? selectedId : '') + '#' + (dup ? dup.index + '/' + dup.count : '') + '#' + Object.keys(triggerToCategory).length;
+    if (key === lastDetailKey) return;
+    lastDetailKey = key;
+
+    if (!e) {
+      detailEl.innerHTML = visibleEvents().length ? '<div class="pane-empty">Select a request to inspect it.</div>' : '';
+      return;
+    }
+    const cat = displayCategoryOf(e.trigger, e.payload);
+    const headers = Object.entries(e.headers || {}).sort(([a], [b]) => a.localeCompare(b));
+    const legacyHeaders = headers.length <= 1;
+    const size = sizeOf(e);
+    detailEl.innerHTML = `
+      <div class="detail">
+        <button class="btn small back" type="button" data-back>← All requests</button>
+        <div class="detail-head">
+          <h2 class="detail-trigger">${escapeHtml(e.trigger || 'unknown')}</h2>
+          <span class="cat-tag"><span class="swatch" style="background:${colorOf(cat)}"></span>${escapeHtml(labelOf(cat))}</span>
+          ${rowFlags(e)}
+        </div>
+        <p class="detail-summary">${describeEvent(e)}</p>
+        <dl class="facts">
+          <dt>Received</dt><dd>${escapeHtml(fmtStamp(e.receivedAt))} <span class="quote" data-ago="${e.receivedAt}">${escapeHtml(fmtAgo(e.receivedAt))}</span></dd>
+          <dt>Request</dt><dd>${escapeHtml(e.method || 'POST')} ${escapeHtml(e.path || '/webhook')}</dd>
+          <dt>Source IP</dt><dd>${e.ip ? escapeHtml(e.ip) : '<span class="quote">not recorded</span>'}</dd>
+          <dt>Size</dt><dd>${escapeHtml(fmtBytes(size))}${size >= 1024 ? ` <span class="quote">${escapeHtml(size.toLocaleString())} bytes</span>` : ''}${typeof e.size === 'number' ? '' : ' <span class="quote">estimated</span>'}</dd>
+          <dt>Delivery</dt><dd>${deliveryFact(e)}</dd>
+          <dt>Event ID</dt><dd>${escapeHtml(e.id || '—')}</dd>
+        </dl>
+        <section>
+          <div class="sec-title">Body <button class="btn small" type="button" data-copy-body>Copy JSON</button></div>
+          <pre class="body-pre">${highlightJson(e.payload)}</pre>
+        </section>
+        <section>
+          <div class="sec-title">Headers <span class="n">${headers.length}</span></div>
+          ${headers.length ? `<table class="htable"><tbody>${headers.map(([k, v]) => `<tr><th scope="row">${escapeHtml(k)}</th><td>${escapeHtml(Array.isArray(v) ? v.join(', ') : v ?? '')}</td></tr>`).join('')}</tbody></table>` : ''}
+          ${legacyHeaders ? '<p class="note">Received before this receiver recorded full request headers.</p>' : ''}
+        </section>
+      </div>`;
+  }
+
+  detailEl.addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-back]')) return closeDetail();
+    const copy = ev.target.closest('[data-copy-body]');
+    if (copy) {
+      const e = findEvent(selectedId);
+      if (e) copyText(copy, JSON.stringify(e.payload, null, 2));
+    }
+  });
+
+  // ---- selection ----
+  function selectEvent(id, { scroll = false, focus = false, open = false } = {}) {
+    selectedId = id;
+    syncSelection();
+    renderDetail();
+    renderTimeline();
+    const row = listEl.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    if (row && scroll) row.scrollIntoView({ block: 'nearest' });
+    if (row && focus) row.focus({ preventScroll: !scroll });
+    if (open && narrow.matches) {
+      panesEl.classList.add('show-detail');
+      detailEl.scrollTop = 0;
+      // Land just under the sticky header, with the back button in view.
+      window.scrollTo({ top: panesEl.getBoundingClientRect().top + window.scrollY - $('appHeader').offsetHeight - 8 });
+    }
+  }
+  function closeDetail() {
+    panesEl.classList.remove('show-detail');
+    const row = listEl.querySelector('.row.sel');
+    if (row) { row.scrollIntoView({ block: 'center' }); row.focus({ preventScroll: true }); }
+  }
+  function moveSelection(delta) {
+    if (!shownIds.length) return;
+    const i = shownIds.indexOf(selectedId);
+    const next = i === -1 ? 0 : Math.min(shownIds.length - 1, Math.max(0, i + delta));
+    selectEvent(shownIds[next], { scroll: true, focus: true });
+  }
+
+  listEl.addEventListener('click', (ev) => {
+    const row = ev.target.closest('.row');
+    if (row) selectEvent(row.dataset.id, { open: true });
+  });
+  listEl.addEventListener('keydown', (ev) => {
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      moveSelection(ev.key === 'ArrowDown' ? 1 : -1);
+    } else if (ev.key === 'Home' || ev.key === 'End') {
+      ev.preventDefault();
+      if (shownIds.length) selectEvent(ev.key === 'Home' ? shownIds[0] : shownIds[shownIds.length - 1], { scroll: true, focus: true });
+    }
+  });
+  // j/k step through requests and / jumps to the filter, anywhere but a text field.
+  document.addEventListener('keydown', (ev) => {
+    if (activeTab !== 'events' || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    const typing = ev.target.closest('input, select, textarea');
+    if (ev.key === 'Escape') {
+      if (typing === searchEl && searchEl.value) { searchEl.value = ''; rerender(); }
+      else if (panesEl.classList.contains('show-detail')) closeDetail();
+      return;
+    }
+    if (typing) return;
+    if (ev.key === '/') { ev.preventDefault(); searchEl.focus(); }
+    else if (ev.key === 'j' || ev.key === 'k') { ev.preventDefault(); moveSelection(ev.key === 'j' ? 1 : -1); }
+  });
+
+  // ---- render ----
+  function render() {
+    const events = visibleEvents();
+    updateFilterOptions(events);
+    const slice = sliceEvents(events);
+    dupInfoAll = computeDuplicates(events); // duplicates are real regardless of the filter
+    timelineSlice = slice;
 
     const presence = events.filter((e) => PRESENCE_TRIGGERS.includes(e.trigger)).length;
     $('presenceCount').textContent = presence ? compact(presence) : '';
 
-    const slice = sliceEvents(events);
-    // Duplicates are real regardless of the current filter, so compute over the full set.
-    const dupInfo = computeDuplicates(events);
-    renderKpis(slice, dupInfo);
-
-    countEl.textContent = `${compact(slice.length)}${slice.length !== events.length ? ' of ' + compact(events.length) : ''} event${events.length === 1 ? '' : 's'}`;
-
-    if (activeTab === 'events') {
-      if (!events.length) {
-        emptyEl.innerHTML = '<b>No events yet.</b><br />Trigger an action in CometChat and it shows up here within a couple of seconds.';
-        emptyEl.hidden = false;
-      } else if (!slice.length) {
-        emptyEl.innerHTML = '<b>Nothing matches this view.</b><br />Try clearing the search, trigger filter or category' + (hidePresenceEl.checked && presence ? ', or show presence events.' : '.');
-        emptyEl.hidden = false;
-      } else {
-        emptyEl.hidden = true;
-      }
+    renderList(events, slice);
+    // Keep the selection while it's still in view; otherwise fall back to the
+    // newest request (desktop only — on a phone the list stays in charge).
+    if (!selectedId || !shownIds.includes(selectedId)) {
+      selectedId = shownIds.length && !narrow.matches ? shownIds[0] : null;
+      if (!selectedId) panesEl.classList.remove('show-detail');
+      syncSelection();
     }
-
-    const renderKey = slice.map(eventId).join('|') + '|' + [...openIds].join(',') + '|' + [...dupInfo.keys()].join(',');
-    if (renderKey === lastRenderKey) return;
-    lastRenderKey = renderKey;
-
-    payloadById.clear();
-    const MAX = 400; // keep the DOM light; search/filters reach the rest
-    const shown = slice.slice(-MAX).reverse();
-    preserveFocus(listEl, () => {
-      listEl.innerHTML =
-        shown.map((e) => renderEventCard(e, dupInfo, newIds)).join('') +
-        (slice.length > MAX ? `<div class="empty" style="padding:18px">Showing the newest ${MAX} of ${compact(slice.length)} — narrow with search or filters.</div>` : '');
-    });
+    renderMetrics(events, slice);
+    renderTimeline();
+    renderTimelineTable();
+    renderDetail();
+    renderLiveState();
   }
-
   function rerender() {
-    lastRenderKey = '';
-    render(lastEventsData);
+    lastListKey = '';
+    lastDetailKey = '';
+    render();
   }
 
-  listEl.addEventListener('click', (ev) => {
-    const copy = ev.target.closest('[data-copy]');
-    if (copy) {
-      navigator.clipboard.writeText(JSON.stringify(payloadById.get(copy.dataset.copy), null, 2)).catch(() => {});
-      copy.textContent = 'Copied';
-      setTimeout(() => { copy.textContent = 'Copy JSON'; }, 1200);
-      return;
+  // ---- live / pause ----
+  let connected = true;
+  function renderLiveState() {
+    const waiting = paused ? Math.max(0, allEvents.length - frozenEvents.length) : 0;
+    pauseBtn.innerHTML = paused
+      ? `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 3v10l8-5z"/></svg>Resume${waiting ? ` <span class="n">${compact(waiting)} new</span>` : ''}`
+      : `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>Pause`;
+    pauseBtn.classList.toggle('on', paused);
+    pauseBtn.setAttribute('aria-pressed', String(paused));
+    const state = !connected ? 'offline' : paused ? 'paused' : 'live';
+    if ($('liveState').dataset.state !== state) {
+      $('liveState').dataset.state = state;
+      $('liveState').innerHTML =
+        state === 'live' ? '<span class="live-dot"></span>Live'
+        : state === 'paused' ? '<span class="pause-mark"></span>Paused'
+        : '<span class="status-dot" style="background:var(--critical)"></span>Offline';
     }
-    const head = ev.target.closest('.card-head');
-    if (!head) return;
-    const id = head.closest('.card').dataset.id;
-    if (openIds.has(id)) openIds.delete(id); else openIds.add(id);
+  }
+  pauseBtn.addEventListener('click', () => {
+    paused = !paused;
+    frozenEvents = paused ? allEvents.slice() : null;
+    frozenAt = paused ? Date.now() : null;
     rerender();
   });
 
-  sidebarEl.addEventListener('click', (ev) => {
-    const btn = ev.target.closest('.side-item');
-    if (!btn) return;
-    if (activeTab === 'events') {
-      selectedCategory = btn.dataset.cat;
-      rerender();
-    } else {
-      resultsArea = btn.dataset.area;
-      lastResultsRenderKey = '';
-      lastSidebarKey = '';
-      lastStatsKey = '';
-      renderResults(lastResultsData);
+  // ---- fetching ----
+  // After the first full load, only events newer than the last one we hold
+  // are fetched. A changed epoch means the history was wiped (a Clear, or a
+  // new test run's clear-history.ts) or the receiver restarted: reload it all.
+  // A receiver without epochs (older deploy) is fetched in full every time.
+  function resetEvents(events, epoch) {
+    allEvents = events;
+    knownIds.clear();
+    for (const e of allEvents) knownIds.add(eventId(e));
+    historyEpoch = epoch ?? null;
+  }
+  async function fetchHistory() {
+    const incremental = historyEpoch != null && allEvents.length > 0;
+    const url = incremental ? '/webhook/history?since=' + allEvents[allEvents.length - 1].receivedAt : '/webhook/history';
+    const json = await (await fetch(url, { cache: 'no-store' })).json();
+    if (!incremental) return resetEvents(json.events || [], json.epoch);
+    if (json.epoch !== historyEpoch) {
+      historyEpoch = null;
+      return fetchHistory();
     }
-  });
-
-  function updateFilterOptions(events) {
-    const triggers = new Set(events.map((e) => e.trigger).filter(Boolean));
-    let changed = triggers.size !== knownTriggers.size;
-    if (!changed) for (const t of triggers) if (!knownTriggers.has(t)) { changed = true; break; }
-    if (!changed) return;
-    knownTriggers = triggers;
-    const current = filterEl.value;
-    filterEl.innerHTML = ['<option value="">All triggers</option>']
-      .concat([...triggers].sort().map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`))
-      .join('');
-    filterEl.value = current;
+    // `since` is inclusive, so the last event we already have comes back too.
+    for (const e of json.events || []) {
+      const id = eventId(e);
+      if (!knownIds.has(id)) { knownIds.add(id); allEvents.push(e); }
+    }
   }
 
   function setConnected(ok) {
+    connected = ok;
     dotEl.classList.toggle('off', !ok);
     statusText.textContent = ok ? 'Connected' : 'Disconnected';
   }
 
   async function poll() {
     try {
-      const res = await fetch('/webhook/history');
-      const json = await res.json();
+      await fetchHistory();
       setConnected(true);
-      lastEventsData = json.events || [];
-      if (searchCache.size > 5000) searchCache.clear();
-      if (payloadKeyCache.size > 5000) payloadKeyCache.clear();
-      updateFilterOptions(lastEventsData);
-      render(lastEventsData);
+      if (searchCache.size > 20000) searchCache.clear();
+      if (payloadKeyCache.size > 20000) payloadKeyCache.clear();
+      if (sizeCache.size > 20000) sizeCache.clear();
+      if (activeTab === 'events') render(); else renderLiveState();
     } catch {
       setConnected(false);
+      renderLiveState();
     }
   }
 
@@ -1073,13 +1445,18 @@
   hidePresenceEl.addEventListener('change', () => { savePref('hidePresence', hidePresenceEl.checked); rerender(); });
 
   $('clearBtn').addEventListener('click', async () => {
-    if (!confirm('Clear all stored events and the last test results?')) return;
+    if (!confirm('Clear all stored webhooks and the last test results on this receiver?')) return;
     await Promise.all([fetch('/webhook/history', { method: 'DELETE' }), fetch('/test-results', { method: 'DELETE' })]);
-    openIds.clear();
-    openResultIds.clear();
+    paused = false;
+    frozenEvents = null;
+    frozenAt = null;
+    selectedId = null;
+    resetEvents([], null);
     seenEventIds.clear();
-    lastRenderKey = '';
+    openResultIds.clear();
     lastResultsRenderKey = '';
+    panesEl.classList.remove('show-detail');
+    rerender();
     poll();
     pollResults();
   });
@@ -1089,8 +1466,9 @@
     .then((data) => {
       triggerToCategory = data.triggerToCategory || {};
       categoryTotals = data.categoryTotals || {};
-      rerender();
-      if (activeTab === 'results') { lastResultsRenderKey = ''; renderResults(lastResultsData); }
+      lastFilterSig = '';
+      if (activeTab === 'events') rerender();
+      else { lastResultsRenderKey = ''; renderResults(lastResultsData); }
     })
     .catch(() => {}); // categorization is a nice-to-have — events still render, just under "Other"
 
@@ -1140,6 +1518,7 @@
     $('tabResults').setAttribute('aria-selected', String(!onEvents));
     $('eventsView').hidden = !onEvents;
     $('resultsView').hidden = onEvents;
+    document.body.classList.toggle('on-events', onEvents);
     hideTip();
     if (onEvents) rerender();
     else { lastResultsRenderKey = ''; lastSidebarKey = ''; lastStatsKey = ''; renderResults(lastResultsData); pollResults(); }
@@ -1396,19 +1775,39 @@
     }
   }
 
-  // Relative times drift; refresh just their text rather than rebuilding
-  // the list, so open cards, scroll position and keyboard focus survive.
-  setInterval(() => {
-    for (const el of listEl.querySelectorAll('.when[data-ts]')) el.textContent = fmtAgo(Number(el.dataset.ts));
-  }, 15000);
+  sidebarEl.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.side-item');
+    if (!btn) return;
+    resultsArea = btn.dataset.area;
+    lastResultsRenderKey = '';
+    lastSidebarKey = '';
+    lastStatsKey = '';
+    renderResults(lastResultsData);
+  });
 
-  poll();
+  // Relative times drift; refresh just their text.
+  setInterval(() => {
+    for (const el of detailEl.querySelectorAll('[data-ago]')) el.textContent = fmtAgo(Number(el.dataset.ago));
+  }, 5000);
+  // The timeline slides with the clock even when nothing new arrives.
+  setInterval(() => { if (activeTab === 'events' && !paused) renderTimeline(); }, 1000);
+
+  // One poll at a time: a slow free-tier wake-up must not stack requests.
+  let polling = false;
+  async function pollOnce() {
+    if (polling) return;
+    polling = true;
+    try { await poll(); } finally { polling = false; }
+  }
+
+  renderWindowSeg();
+  renderLiveState();
+  pollOnce();
   pollResults();
   let tick = 0;
   setInterval(() => {
-    if (!autoRefresh.checked) return;
     tick++;
-    poll();
+    pollOnce();
     if (activeTab === 'results' || tick % 2 === 0) pollResults();
   }, 1500);
 </script>

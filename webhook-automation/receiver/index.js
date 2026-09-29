@@ -32,10 +32,34 @@ try {
   history = [];
 }
 
+// Changes whenever the history is wiped (and on every boot), so the dashboard
+// — which fetches only events newer than the last one it has — knows its copy
+// is stale and must reload in full instead of keeping events that are gone.
+let historyEpoch = crypto.randomUUID();
+
 function saveHistory() {
   fs.writeFile(HISTORY_FILE, JSON.stringify(history), (err) => {
     if (err) console.error('Failed to persist event history:', err.message);
   });
+}
+
+// Request headers as the dashboard's inspector shows them. /webhook/history
+// is served without auth, so the Authorization header keeps only its scheme:
+// the value is this receiver's own Basic Auth credentials.
+function inspectableHeaders(req) {
+  const out = {};
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (name === 'cookie') continue;
+    out[name] = name === 'authorization' ? String(value).split(' ')[0] + ' ••••••' : value;
+  }
+  return out;
+}
+
+// Render (and most hosts) sit behind a proxy, so the socket address is the
+// proxy's; the first X-Forwarded-For hop is the real sender.
+function sourceIp(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || req.socket.remoteAddress || null;
 }
 
 function checkAuth(req, res, next) {
@@ -50,12 +74,16 @@ function checkAuth(req, res, next) {
 // CometChat posts every webhook event here.
 app.post('/webhook', checkAuth, (req, res) => {
   const payload = req.body;
+  const declaredSize = Number(req.headers['content-length']);
   const event = {
     id: crypto.randomUUID(),
     trigger: payload.trigger,
     receivedAt: Date.now(),
     method: req.method,
-    headers: { 'content-type': req.headers['content-type'] || null },
+    path: req.originalUrl,
+    ip: sourceIp(req),
+    size: Number.isFinite(declaredSize) ? declaredSize : Buffer.byteLength(JSON.stringify(payload)),
+    headers: inspectableHeaders(req),
     payload,
   };
   events.push(event);
@@ -106,12 +134,13 @@ app.get('/webhook/history', (req, res) => {
   let results = history;
   if (trigger) results = results.filter((e) => e.trigger === trigger);
   if (since) results = results.filter((e) => e.receivedAt >= Number(since));
-  res.json({ count: results.length, events: results });
+  res.json({ count: results.length, epoch: historyEpoch, events: results });
 });
 
 // Explicit, separate clear for the persisted history (dashboard's "Clear all").
 app.delete('/webhook/history', (_req, res) => {
   history = [];
+  historyEpoch = crypto.randomUUID();
   saveHistory();
   res.json({ ok: true });
 });
